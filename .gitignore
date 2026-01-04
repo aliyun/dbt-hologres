@@ -79,6 +79,6 @@ test.env
 
 # Profile configuration files
 profiles.yml
-example/target/
+examples/target/
 .qoder/
 .pytest_cache/
