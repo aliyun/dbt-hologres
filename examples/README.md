@@ -27,6 +27,8 @@ hologres_example:
 dbt debug  # Verify connection
 dbt run    # Run all models
 dbt test   # Run tests
+dbt docs generate  # Generate documentation
+dbt docs serve    # Serve documentation at http://localhost:8080
 ```
 
 ## Example Models
