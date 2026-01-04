@@ -25,6 +25,7 @@ hologres_example:
 
 ```bash
 dbt debug  # Verify connection
+dbt seed   # Load seed data from CSV files
 dbt run    # Run all models
 dbt test   # Run tests
 dbt docs generate  # Generate documentation
@@ -44,6 +45,34 @@ dbt docs serve    # Serve documentation at http://localhost:8080
 
 ### 4. Dynamic Table Model
 `models/marts/orders_dynamic_table.sql` - Hologres Dynamic Table with auto-refresh
+
+### 5. Table with Properties
+`models/marts/table_with_properties.sql` - Table with Hologres-specific properties (orientation, distribution_key, etc.)
+
+## Seed Data
+
+### Sales Targets
+`seeds/salestargets.csv` - Sample sales target data for stores
+
+Seeds are CSV files in your `seeds/` directory that dbt can load into your data warehouse:
+
+```bash
+# Load all seed files
+dbt seed
+
+# Load specific seed file
+dbt seed --select salestargets
+
+# Full refresh (drop and recreate)
+dbt seed --full-refresh
+```
+
+Seeds are useful for:
+- Loading reference data (e.g., country codes, status mappings)
+- Loading test data for development
+- Loading small lookup tables that change infrequently
+
+**Note**: Seeds are best for small datasets (< 1MB). For larger datasets, use external data loading tools.
 
 ## Model Configurations
 
