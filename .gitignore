@@ -77,3 +77,6 @@ test.env
 
 # Profile configuration files
 profiles.yml
+example/logs/dbt.log
+.qoder/
+.pytest_cache/
