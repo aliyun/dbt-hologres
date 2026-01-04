@@ -9,6 +9,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*/__pycache__/
 
 # Distribution / packaging
 .Python
@@ -69,6 +70,7 @@ dbt_packages/
 logs/
 dbt_modules/
 *.log
+*.logs
 
 # Environment variables
 .env
