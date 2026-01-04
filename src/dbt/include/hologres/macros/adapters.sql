@@ -9,8 +9,48 @@
 
     {{ sql_header if sql_header is not none }}
 
+    {# Read table property configurations #}
+    {%- set orientation = config.get('orientation', none) -%}
+    {%- set distribution_key = config.get('distribution_key', none) -%}
+    {%- set clustering_key = config.get('clustering_key', none) -%}
+    {%- set event_time_column = config.get('event_time_column', none) -%}
+    {%- set segment_key = config.get('segment_key', none) -%}
+    {%- set bitmap_columns = config.get('bitmap_columns', none) -%}
+    {%- set dictionary_encoding_columns = config.get('dictionary_encoding_columns', none) -%}
+
+    {# Handle segment_key as alias for event_time_column #}
+    {%- if event_time_column is none and segment_key is not none -%}
+      {%- set event_time_column = segment_key -%}
+    {%- endif -%}
+
+    {# Build WITH clause properties list #}
+    {%- set with_properties = [] -%}
+    {%- if orientation is not none -%}
+      {%- do with_properties.append("orientation = '" ~ orientation ~ "'") -%}
+    {%- endif -%}
+    {%- if distribution_key is not none -%}
+      {%- do with_properties.append("distribution_key = '" ~ distribution_key ~ "'") -%}
+    {%- endif -%}
+    {%- if clustering_key is not none -%}
+      {%- do with_properties.append("clustering_key = '" ~ clustering_key ~ "'") -%}
+    {%- endif -%}
+    {%- if event_time_column is not none -%}
+      {%- do with_properties.append("event_time_column = '" ~ event_time_column ~ "'") -%}
+    {%- endif -%}
+    {%- if bitmap_columns is not none -%}
+      {%- do with_properties.append("bitmap_columns = '" ~ bitmap_columns ~ "'") -%}
+    {%- endif -%}
+    {%- if dictionary_encoding_columns is not none -%}
+      {%- do with_properties.append("dictionary_encoding_columns = '" ~ dictionary_encoding_columns ~ "'") -%}
+    {%- endif -%}
+
     {# Hologres不支持TEMPORARY TABLE，忽略temporary参数 #}
     create table {{ relation }}
+    {%- if with_properties | length > 0 %}
+    with (
+      {{ with_properties | join(',\n      ') }}
+    )
+    {%- endif %}
     as (
       {{ compiled_code }}
     );

@@ -33,6 +33,14 @@ GET_RELATIONS_MACRO_NAME = "hologres__get_relations"
 @dataclass
 class HologresConfig(AdapterConfig):
     indexes: Optional[List[HologresIndexConfig]] = None
+    # Table property configurations for Hologres 2.1+ WITH clause
+    orientation: Optional[str] = None
+    distribution_key: Optional[str] = None
+    clustering_key: Optional[str] = None
+    event_time_column: Optional[str] = None
+    segment_key: Optional[str] = None  # Alias for event_time_column
+    bitmap_columns: Optional[str] = None
+    dictionary_encoding_columns: Optional[str] = None
 
 
 class HologresAdapter(SQLAdapter):
