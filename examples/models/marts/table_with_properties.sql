@@ -6,9 +6,6 @@
     schema='marts',
     orientation='column',
     distribution_key='order_id',
-    clustering_key='order_date:asc',
-    event_time_column='order_date',
-    bitmap_columns='status,payment_method',
     dictionary_encoding_columns='customer_id'
 )}}
 
@@ -24,16 +21,12 @@ select
     order_id,
     customer_id,
     order_date,
-    status,
-    payment_method,
-    sum(amount) as total_amount,
+    cast(sum(amount) as numeric(12,2)) as total_amount,
     count(*) as item_count,
-    min(amount) as min_amount,
-    max(amount) as max_amount
+    cast(min(amount) as numeric(10,2)) as min_amount,
+    cast(max(amount) as numeric(10,2)) as max_amount
 from {{ ref('stg_orders') }}
 group by 
     order_id, 
     customer_id, 
-    order_date, 
-    status, 
-    payment_method
+    order_date

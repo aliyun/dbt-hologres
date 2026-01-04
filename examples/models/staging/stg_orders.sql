@@ -37,13 +37,3 @@ select
     'customer_1' as customer_id,
     cast(75.25 as numeric(10,2)) as amount,
     current_timestamp as order_date
-    cast(250.75 as numeric(10,2)) as amount,
-    current_timestamp as order_date
-
-union all
-
-select
-    3 as order_id,
-    'customer_1' as customer_id,
-    cast(75.25 as numeric(10,2)) as amount,
-    current_timestamp as order_date
