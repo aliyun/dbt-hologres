@@ -14,9 +14,29 @@ For more information on using dbt with Hologres, consult the [dbt documentation]
 
 ### Installation
 
+#### Install from PyPI
+
 ```bash
 pip install dbt-hologres
 ```
+
+#### Install from Source
+
+For development or to get the latest features, you can install directly from the source code:
+
+```bash
+# Clone the repository
+git clone https://github.com/your-org/dbt-hologres.git
+cd dbt-hologres
+
+# Install in editable mode
+pip install --force-reinstall -e .
+```
+
+This allows you to:
+- Modify the adapter code and see changes immediately
+- Contribute to the project development
+- Test unreleased features
 
 ### Configuration
 
@@ -49,7 +69,7 @@ hologres_project:
 
 ### Hologres-Specific Features
 
-#### Dynamic Tables (物化视图)
+#### Dynamic Tables
 
 Dynamic Tables are Hologres's implementation of materialized views with automatic refresh:
 
@@ -74,7 +94,7 @@ Supported configurations:
 |-----------|----------|---------|-------------|
 | host | Yes | - | Hologres instance hostname |
 | port | No | 80 | Port number |
-| user | Yes | - | Username (case-sensitive, format: BASIC$username) |
+| user | Yes | - | Username (case-sensitive) |
 | password | Yes | - | Password (case-sensitive) |
 | database | Yes | - | Database name |
 | schema | Yes | "" | Default schema (use empty string "" if not needed) |
@@ -111,10 +131,9 @@ my_hologres_project/
 ### Important Notes
 
 1. **Case Sensitivity**: Hologres usernames and passwords are case-sensitive
-2. **Username Format**: Use the format `BASIC$username` for basic authentication
-3. **Default Port**: Default port is 80 (not 5432 like PostgreSQL)
-4. **SSL Mode**: SSL is disabled by default for Hologres connections
-5. **Psycopg3**: This adapter uses Psycopg 3, which has API differences from Psycopg 2
+2. **Default Port**: Default port is 80 (not 5432 like PostgreSQL)
+3. **SSL Mode**: SSL is disabled by default for Hologres connections
+4. **Psycopg3**: This adapter uses Psycopg 3, which has API differences from Psycopg 2
 
 ### Supported dbt Versions
 
@@ -128,8 +147,8 @@ Want to help us build `dbt-hologres`? Check out the [Contributing Guide](CONTRIB
 ### Resources
 
 - [dbt Documentation](https://docs.getdbt.com)
-- [Hologres Documentation](https://help.aliyun.com/product/113679.html)
-- [Hologres Dynamic Table Guide](https://help.aliyun.com/zh/hologres/user-guide/create-dynamic-table)
+- [Hologres Documentation](https://help.aliyun.com/zh/hologres/)
+- [Hologres Dynamic Table Guide](https://help.aliyun.com/zh/hologres/user-guide/introduction-to-dynamic-table)
 
 ### License
 
