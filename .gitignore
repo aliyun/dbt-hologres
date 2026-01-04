@@ -10,6 +10,7 @@ __pycache__/
 *$py.class
 *.so
 */__pycache__/
+.pytest_cache/
 
 # Distribution / packaging
 .Python
@@ -65,6 +66,7 @@ coverage.xml
 Thumbs.db
 
 # dbt specific
+examples/target/
 target/
 dbt_packages/
 logs/
@@ -76,9 +78,7 @@ dbt_modules/
 .env
 .env.local
 test.env
+.qoder/
 
 # Profile configuration files
 profiles.yml
-examples/target/
-.qoder/
-.pytest_cache/
