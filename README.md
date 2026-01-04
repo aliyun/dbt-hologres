@@ -138,11 +138,7 @@ my_hologres_project/
 ### Supported dbt Versions
 
 - dbt-core >= 1.8.0
-- Python >= 3.10
-
-### Contribute
-
-Want to help us build `dbt-hologres`? Check out the [Contributing Guide](CONTRIBUTING.md).
+- Python >= 3.11
 
 ### Resources
 
