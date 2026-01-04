@@ -12,7 +12,7 @@ hologres_example:
   outputs:
     dev:
       type: hologres
-      host: hgpostcn-cn-wyc4l7i67022-cn-hangzhou.hologres.aliyuncs.com
+      host: hgpostcn-cn-xxxx-cn-hangzhou.hologres.aliyuncs.com
       port: 80
       user: BASIC$dbt_user
       password: Leeyd#1988
