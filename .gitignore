@@ -73,6 +73,7 @@ logs/
 dbt_modules/
 *.log
 *.logs
+examples/.user.yml
 
 # Environment variables
 .env
