@@ -28,7 +28,7 @@ hologres_project:
   outputs:
     dev:
       type: hologres
-      host: hgpostcn-cn-xxx.hologres.aliyuncs.com
+      host: hgxxx-xx-xxx-xx-xxx.hologres.aliyuncs.com
       port: 80
       user: BASIC$your_username
       password: your_password

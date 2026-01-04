@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Uses Psycopg 3 for database connectivity
 - PostgreSQL-compatible SQL syntax
 - Full support for standard dbt materializations: table, view, incremental
-- Support for Hologres Dynamic Tables (物化视图) with auto-refresh
+- Support for Hologres Dynamic Tables with auto-refresh
 - Multiple incremental strategies: append, delete+insert, merge, microbatch
 - Full constraint support: primary keys, foreign keys, unique, not null, check
 - SSL disabled by default for Hologres connections
