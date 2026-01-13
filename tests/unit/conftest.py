@@ -3,6 +3,10 @@ import pytest
 from unittest import mock
 
 
+# Mark all tests in this directory as unit tests
+pytestmark = pytest.mark.unit
+
+
 @pytest.fixture
 def mock_psycopg_connect():
     """Mock psycopg connect function."""

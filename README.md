@@ -140,6 +140,114 @@ my_hologres_project/
 - dbt-core >= 1.8.0
 - Python >= 3.11
 
+## Running Tests
+
+This project includes both unit tests and integration tests.
+
+### Unit Tests
+
+Unit tests use mocked database connections and can be run without a Hologres instance:
+
+```bash
+# Run all unit tests
+pytest tests/unit/
+
+# Run a specific test file
+pytest tests/unit/test_connection.py
+
+# Run with verbose output
+pytest tests/unit/ -v
+```
+
+### Integration Tests
+
+Integration tests require an actual Hologres database connection and perform real database operations including creating, updating, and dropping tables.
+
+#### Prerequisites
+
+Before running integration tests, configure your Hologres connection using one of the following methods:
+
+**Method 1: Using test.env file (Recommended)**
+
+1. Copy the example environment file:
+```bash
+cp test.env.example test.env
+```
+
+2. Edit `test.env` and fill in your actual Hologres connection details:
+```bash
+# Hologres instance configuration
+DBT_HOLOGRES_HOST=your_hologres_instance.hologres.aliyuncs.com
+DBT_HOLOGRES_PORT=80
+DBT_HOLOGRES_USER='BASIC$your_username'
+DBT_HOLOGRES_PASSWORD='your_password'
+DBT_HOLOGRES_DATABASE='your_database'
+DBT_HOLOGRES_SCHEMA='test_schema'
+
+# Enable integration tests
+DBT_HOLOGRES_RUN_INTEGRATION_TESTS=true
+```
+
+3. Load the environment variables before running tests:
+```bash
+# Load environment variables from test.env
+export $(cat test.env | grep -v '^#' | xargs)
+
+# Run integration tests
+pytest tests/integration/
+```
+
+**Method 2: Setting environment variables directly**
+
+```bash
+export DBT_HOLOGRES_RUN_INTEGRATION_TESTS=true
+export DBT_HOLOGRES_HOST=your_hologres_instance.hologres.aliyuncs.com
+export DBT_HOLOGRES_PORT=80
+export DBT_HOLOGRES_USER=your_username
+export DBT_HOLOGRES_PASSWORD=your_password
+export DBT_HOLOGRES_DATABASE=your_database
+export DBT_HOLOGRES_SCHEMA=test_schema  # Optional, defaults to 'test_schema'
+```
+
+#### Running Integration Tests
+
+```bash
+# Run all integration tests
+pytest tests/integration/
+
+# Run specific integration test
+pytest tests/integration/test_table_operations.py
+
+# Run with verbose output
+pytest tests/integration/ -v
+
+# Run only table operation tests
+pytest tests/integration/test_table_operations.py -v
+
+# Run only view operation tests
+pytest tests/integration/test_view_operations.py -v
+
+# Run only Hologres-specific feature tests
+pytest tests/integration/test_hologres_features.py -v
+```
+
+#### Integration Test Structure
+
+The integration test suite includes:
+
+- **test_table_operations.py**: Tests for table creation, updates, deletion, and incremental models
+- **test_view_operations.py**: Tests for view creation, dependencies, and conversions
+- **test_hologres_features.py**: Tests for Hologres-specific features like indexes, dynamic tables, and partitioning
+
+Each test uses an isolated schema to ensure tests don't interfere with each other. Test schemas are automatically cleaned up after each test run.
+
+#### Test Isolation
+
+Integration tests create unique schemas for each test to ensure isolation:
+- Each test gets a unique schema name (e.g., `test_a1b2c3d4e5f6g7h8i9j0`)
+- Tests clean up their schemas automatically after completion
+- Failed tests still attempt cleanup
+
 ### Resources
 
 - [dbt Documentation](https://docs.getdbt.com)
