@@ -17,7 +17,7 @@ For more information on using dbt with Hologres, consult the [dbt documentation]
 #### Install from PyPI
 
 ```bash
-pip install dbt-hologres
+pip install dbt-alibaba-cloud-hologres
 ```
 
 #### Install from Source
@@ -26,7 +26,7 @@ For development or to get the latest features, you can install directly from the
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/dbt-hologres.git
+git clone https://github.com/aliyun/dbt-hologres.git
 cd dbt-hologres
 
 # Install in editable mode
@@ -34,6 +34,7 @@ pip install --force-reinstall -e .
 ```
 
 This allows you to:
+
 - Modify the adapter code and see changes immediately
 - Contribute to the project development
 - Test unreleased features
@@ -83,6 +84,7 @@ models:
 ```
 
 Supported configurations:
+
 - `freshness`: Data freshness requirement (e.g., "30 minutes", "1 hours")
 - `auto_refresh_mode`: `auto`, `incremental`, or `full`
 - `computing_resource`: `serverless`, `local`, or warehouse name
@@ -90,19 +92,20 @@ Supported configurations:
 
 ### Connection Parameters
 
-| Parameter | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| host | Yes | - | Hologres instance hostname |
-| port | No | 80 | Port number |
-| user | Yes | - | Username (case-sensitive) |
-| password | Yes | - | Password (case-sensitive) |
-| database | Yes | - | Database name |
-| schema | Yes | "" | Default schema (use empty string "" if not needed) |
-| threads | No | 1 | Number of threads for parallel execution |
-| connect_timeout | No | 10 | Connection timeout in seconds |
-| sslmode | No | disable | SSL mode (disabled by default) |
-| application_name | No | dbt_hologres_{version} | Application identifier |
-| retries | No | 1 | Number of connection retries |
+
+| Parameter        | Required | Default                | Description                                        |
+| ---------------- | -------- | ---------------------- | -------------------------------------------------- |
+| host             | Yes      | -                      | Hologres instance hostname                         |
+| port             | No       | 80                     | Port number                                        |
+| user             | Yes      | -                      | Username (case-sensitive)                          |
+| password         | Yes      | -                      | Password (case-sensitive)                          |
+| database         | Yes      | -                      | Database name                                      |
+| schema           | Yes      | ""                     | Default schema (use empty string "" if not needed) |
+| threads          | No       | 1                      | Number of threads for parallel execution           |
+| connect_timeout  | No       | 10                     | Connection timeout in seconds                      |
+| sslmode          | No       | disable                | SSL mode (disabled by default)                     |
+| application_name | No       | dbt_hologres_{version} | Application identifier                             |
+| retries          | No       | 1                      | Number of connection retries                       |
 
 ### Testing Your Connection
 
@@ -170,11 +173,13 @@ Before running integration tests, configure your Hologres connection using one o
 **Method 1: Using test.env file (Recommended)**
 
 1. Copy the example environment file:
+
 ```bash
 cp test.env.example test.env
 ```
 
 2. Edit `test.env` and fill in your actual Hologres connection details:
+
 ```bash
 # Hologres instance configuration
 DBT_HOLOGRES_HOST=your_hologres_instance.hologres.aliyuncs.com
@@ -189,6 +194,7 @@ DBT_HOLOGRES_RUN_INTEGRATION_TESTS=true
 ```
 
 3. Load the environment variables before running tests:
+
 ```bash
 # Load environment variables from test.env
 export $(cat test.env | grep -v '^#' | xargs)
@@ -244,6 +250,7 @@ Each test uses an isolated schema to ensure tests don't interfere with each othe
 #### Test Isolation
 
 Integration tests create unique schemas for each test to ensure isolation:
+
 - Each test gets a unique schema name (e.g., `test_a1b2c3d4e5f6g7h8i9j0`)
 - Tests clean up their schemas automatically after completion
 - Failed tests still attempt cleanup
@@ -261,5 +268,6 @@ Apache License 2.0
 ### Support
 
 For issues and questions:
+
 - [GitHub Issues](https://github.com/dbt-labs/dbt-adapters/issues)
 - [dbt Community Slack](https://www.getdbt.com/community/)
