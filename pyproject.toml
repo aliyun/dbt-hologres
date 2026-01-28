@@ -4,16 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 dynamic = ["version"]
-name = "dbt-hologres"
+name = "dbt-alibaba-cloud-hologres"
 description = "The Hologres adapter plugin for dbt"
 readme = "README.md"
 keywords = ["dbt", "adapter", "adapters", "database", "elt", "dbt-core", "dbt Core", "dbt Cloud", "dbt Labs", "hologres", "阿里云"]
 requires-python = ">=3.10.0"
 authors = [
-    { name = "dbt Labs", email = "info@dbtlabs.com" },
-]
-maintainers = [
-    { name = "dbt Labs", email = "info@dbtlabs.com" },
+    { name = "timothyding", email = "kunwu.dy@alibaba-inc.com" },
+    { name = "yaotian-alibaba", email = "zhanggaodi.zgd@alibaba-inc.com" },
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -36,11 +34,8 @@ dependencies = [
     "agate>=1.0,<2.0",
 ]
 [project.urls]
-Homepage = "https://github.com/dbt-labs/dbt-adapters/tree/main/dbt-hologres"
-Documentation = "https://docs.getdbt.com"
-Repository = "https://github.com/dbt-labs/dbt-adapters.git#subdirectory=dbt-hologres"
-Issues = "https://github.com/dbt-labs/dbt-adapters/issues"
-Changelog = "https://github.com/dbt-labs/dbt-adapters/blob/main/dbt-hologres/CHANGELOG.md"
+Homepage = "https://github.com/aliyun/dbt-hologres.git"
+Repository = "https://github.com/aliyun/dbt-hologres.git"
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit", "tests/functional"]
