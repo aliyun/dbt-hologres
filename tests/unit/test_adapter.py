@@ -174,3 +174,24 @@ class TestHologresConfig:
         config = HologresConfig(segment_key="created_at")
         assert config.segment_key == "created_at"
         assert config.event_time_column is None
+
+    def test_logical_partition_key_single(self):
+        """Test config with single logical partition key."""
+        config = HologresConfig(logical_partition_key="ds")
+        assert config.logical_partition_key == "ds"
+
+    def test_logical_partition_key_multiple(self):
+        """Test config with multiple logical partition keys."""
+        config = HologresConfig(logical_partition_key="order_year, order_month")
+        assert config.logical_partition_key == "order_year, order_month"
+
+    def test_logical_partition_key_with_properties(self):
+        """Test config with logical partition key and other properties."""
+        config = HologresConfig(
+            orientation="column",
+            distribution_key="order_id",
+            logical_partition_key="ds",
+        )
+        assert config.orientation == "column"
+        assert config.distribution_key == "order_id"
+        assert config.logical_partition_key == "ds"

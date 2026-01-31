@@ -49,6 +49,30 @@ dbt docs serve    # Serve documentation at http://localhost:8080
 ### 5. Table with Properties
 `models/marts/table_with_properties.sql` - Table with Hologres-specific properties (orientation, distribution_key, etc.)
 
+### 6. Logical Partition Table (Single Key)
+`models/marts/logical_partition_table.sql` - Logical partition table with single partition column
+
+- Partition by date column (`ds`) for efficient data management
+- Supported partition types: INT, TEXT, VARCHAR, DATE, TIMESTAMP, TIMESTAMPTZ
+- Partition keys are automatically set to NOT NULL
+
+```yaml
+config:
+  logical_partition_key: 'ds'
+```
+
+### 7. Logical Partition Table (Multi Keys)
+`models/marts/lpt_multi_keys.sql` - Logical partition table with 2 partition columns
+
+- Supports up to 2 partition columns (e.g., year + month)
+- Useful for hierarchical time-based partitioning
+- Query optimization: filtering by partition keys scans only relevant partitions
+
+```yaml
+config:
+  logical_partition_key: 'order_year, order_month'
+```
+
 ## Seed Data
 
 ### Sales Targets
