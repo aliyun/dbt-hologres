@@ -65,8 +65,9 @@ hologres_project:
 - **Full PostgreSQL Compatibility**: Leverage familiar PostgreSQL syntax and features
 - **Psycopg3 Driver**: Uses the modern Psycopg 3 library for better performance
 - **Dynamic Tables**: Support for Hologres Dynamic Tables (materialized views with auto-refresh)
+- **Logical Partition Tables**: Support for logical partitioning with 1-2 partition keys
 - **Incremental Models**: Multiple strategies including append, delete+insert, merge, and microbatch
-- **Constraints**: Full support for primary keys, foreign keys, unique constraints, and more
+- **Constraints**: Full support for primary keys, not null constraints, and more
 
 ### Hologres-Specific Features
 
@@ -89,6 +90,26 @@ Supported configurations:
 - `auto_refresh_mode`: `auto`, `incremental`, or `full`
 - `computing_resource`: `serverless`, `local`, or warehouse name
 - Logical partitioning support for time-series data
+
+#### Logical Partition Tables
+
+Logical Partition Tables enable efficient data management and query optimization:
+
+```yaml
+models:
+  my_model:
+    materialized: table
+    logical_partition_key: 'ds'  # Single partition key
+    # or for multiple keys:
+    # logical_partition_key: 'order_year, order_month'
+```
+
+Supported configurations:
+
+- `logical_partition_key`: Partition column(s), supports 1-2 columns separated by comma
+- Supported types: INT, TEXT, VARCHAR, DATE, TIMESTAMP, TIMESTAMPTZ
+- Partition keys are automatically set to NOT NULL
+- Works with table properties like `orientation`, `distribution_key`, etc.
 
 ### Connection Parameters
 

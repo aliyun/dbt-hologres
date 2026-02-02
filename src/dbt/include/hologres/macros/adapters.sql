@@ -17,6 +17,7 @@
     {%- set segment_key = config.get('segment_key', none) -%}
     {%- set bitmap_columns = config.get('bitmap_columns', none) -%}
     {%- set dictionary_encoding_columns = config.get('dictionary_encoding_columns', none) -%}
+    {%- set logical_partition_key = config.get('logical_partition_key', none) -%}
 
     {# Handle segment_key as alias for event_time_column #}
     {%- if event_time_column is none and segment_key is not none -%}
@@ -45,21 +46,87 @@
     {%- endif -%}
 
     {# Hologres不支持TEMPORARY TABLE，忽略temporary参数 #}
-    create table {{ relation }}
-    {%- if with_properties | length > 0 %}
-    with (
-      {{ with_properties | join(',\n      ') }}
-    )
-    {%- endif %}
-    as (
-      {{ compiled_code }}
-    );
+    {%- if logical_partition_key is not none -%}
+      {# 逻辑分区表：此处仅返回普通CTAS，实际的逻辑分区表创建在materialization中处理 #}
+      {# 这个分支仅用于向后兼容，实际逻辑分区表创建应通过hologres__create_logical_partition_table_from_ctas macro #}
+      {% do exceptions.raise_compiler_error("逻辑分区表(logical_partition_key)需要使用table materialization，请确保materialized='table'") %}
+    {%- else -%}
+      {# 普通表使用CTAS #}
+      create table {{ relation }}
+      {%- if with_properties | length > 0 %}
+      with (
+        {{ with_properties | join(',\n      ') }}
+      )
+      {%- endif %}
+      as (
+        {{ compiled_code }}
+      );
+    {%- endif -%}
   {%- elif language == 'python' -%}
     {# Python models也不使用temporary #}
     {{ py_write_table(compiled_code=compiled_code, target_relation=relation, temporary=false) }}
   {%- else -%}
     {% do exceptions.raise_compiler_error("hologres__create_table_as macro didn't get supported language " ~ language) %}
   {%- endif -%}
+{%- endmacro %}
+
+{% macro hologres__get_column_defs_from_relation(temp_relation) -%}
+  {#
+    从现有表获取列定义，用于创建逻辑分区表
+    返回格式: [{'column': 'col_name', 'dtype': 'data_type'}, ...]
+  #}
+  {%- set columns = adapter.get_columns_in_relation(temp_relation) -%}
+  {{ return(columns) }}
+{%- endmacro %}
+
+{% macro hologres__build_column_definitions(columns, partition_columns) -%}
+  {#
+    构建列定义字符串，分区键列添加NOT NULL约束
+    参数:
+    - columns: 列信息列表
+    - partition_columns: 分区键列名列表
+  #}
+  {%- set col_defs = [] -%}
+  {%- for col in columns -%}
+    {%- set col_name = col.column -%}
+    {# 使用 data_type 属性获取完整类型定义（包含精度信息） #}
+    {%- set col_type = col.data_type -%}
+    {%- if col_name in partition_columns -%}
+      {%- do col_defs.append(col_name ~ ' ' ~ col_type ~ ' not null') -%}
+    {%- else -%}
+      {%- do col_defs.append(col_name ~ ' ' ~ col_type) -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {{ return(col_defs | join(', ')) }}
+{%- endmacro %}
+
+{% macro hologres__create_logical_partition_table_ddl(relation, columns, logical_partition_key, with_properties) -%}
+  {#
+    生成创建逻辑分区表的DDL语句
+    参数:
+    - relation: 目标表
+    - columns: 列信息列表
+    - logical_partition_key: 分区键，支持1-2个列，用逗号分隔
+    - with_properties: WITH子句属性列表
+  #}
+  {%- set partition_columns = logical_partition_key.split(',') | map('trim') | list -%}
+  {%- set column_defs = hologres__build_column_definitions(columns, partition_columns) -%}
+  
+  create table {{ relation }} (
+    {{ column_defs }}
+  )
+  logical partition by list ({{ partition_columns | join(', ') }})
+  {%- if with_properties | length > 0 %}
+  with (
+    {{ with_properties | join(',\n    ') }}
+  )
+  {%- endif %};
+{%- endmacro %}
+
+{% macro hologres__insert_into_table(relation, compiled_code) -%}
+  {# 将数据插入到表中 #}
+  insert into {{ relation }}
+  {{ compiled_code }};
 {%- endmacro %}
 
 {% macro hologres__create_view_as(relation, sql) -%}
