@@ -158,6 +158,7 @@ my_hologres_project/
 2. **Default Port**: Default port is 80 (not 5432 like PostgreSQL)
 3. **SSL Mode**: SSL is disabled by default for Hologres connections
 4. **Psycopg3**: This adapter uses Psycopg 3, which has API differences from Psycopg 2
+5. **Model Name Restrictions**: Model names must not exceed 27 characters and are case-insensitive (converted to lowercase)
 
 ### Supported dbt Versions
 
