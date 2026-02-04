@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, List, Optional, Set
+from datetime import date, datetime, timezone
+from typing import Any, List, Optional, Set, Union
 
 from dbt.adapters.base import AdapterConfig, ConstraintSupport, available
 from dbt.adapters.capability import (
@@ -25,6 +25,7 @@ from dbt.adapters.hologres.column import HologresColumn
 from dbt.adapters.hologres.connections import HologresConnectionManager
 from dbt.adapters.hologres.relation import HologresRelation
 from dbt.adapters.hologres.relation_configs import HologresIndexConfig
+from dbt.adapters.hologres.local_date import LocalDate, parse_date as _parse_date, today as _today
 
 
 GET_RELATIONS_MACRO_NAME = "hologres__get_relations"
@@ -84,6 +85,46 @@ class HologresAdapter(SQLAdapter):
     @available
     def parse_index(self, raw_index: Any) -> Optional[HologresIndexConfig]:
         return HologresIndexConfig.parse(raw_index)
+
+    @available
+    def parse_date(self, date_input: Union[str, date, datetime, None] = None) -> LocalDate:
+        """
+        Parse a date string or object into a LocalDate instance for chainable date operations.
+        
+        This function can be called in Jinja2 templates as: {{ adapter.parse_date('2024-01-15') }}
+        Or through the parse_date macro as: {{ parse_date('2024-01-15') }}
+        
+        Args:
+            date_input: Date string (YYYY-MM-DD), date object, datetime object, or None (today)
+            
+        Returns:
+            LocalDate instance supporting chainable date operations like:
+            - sub_days(n), sub_months(n), sub_years(n)
+            - add_days(n), add_months(n), add_years(n)
+            - start_of_month(), end_of_month()
+            - start_of_quarter(), end_of_quarter()
+            - start_of_year(), end_of_year()
+            
+        Example:
+            {%- set ds = parse_date('2024-01-15') -%}
+            {%- set start_date = ds.sub_months(2).start_of_month() -%}
+            -- start_date will be '2023-11-01'
+        """
+        return _parse_date(date_input)
+
+    @available
+    def today(self) -> LocalDate:
+        """
+        Get today's date as a LocalDate instance.
+        
+        Returns:
+            LocalDate instance for today
+            
+        Example:
+            {%- set current = adapter.today() -%}
+            {%- set last_month = current.sub_months(1).start_of_month() -%}
+        """
+        return _today()
 
     def _link_cached_database_relations(self, schemas: Set[str]):
         """
