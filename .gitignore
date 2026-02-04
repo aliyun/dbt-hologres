@@ -83,3 +83,7 @@ test.env
 
 # Profile configuration files
 profiles.yml
+
+# Agent DOC
+CLAUDE.md
+AGENT.md
