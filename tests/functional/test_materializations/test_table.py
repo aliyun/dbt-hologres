@@ -27,6 +27,7 @@ class TestTableMaterialization:
     @pytest.fixture(scope="class")
     def models(self):
         """Define basic table model."""
+        # Note: Hologres doesn't support random() function
         return {
             "basic_table.sql": """
 {{ config(materialized='table') }}
@@ -34,7 +35,8 @@ class TestTableMaterialization:
 select
     generate_series(1, 100) as id,
     'name_' || generate_series(1, 100) as name,
-    random() * 1000 as value
+    (i % 1000)::bigint as value
+from generate_series(1, 100) as s(i)
 """,
         }
 
@@ -109,6 +111,7 @@ class TestTableWithDistributionKey:
     @pytest.fixture(scope="class")
     def models(self):
         """Define model with distribution key."""
+        # Note: Hologres doesn't support random() function
         return {
             "distributed_table.sql": """
 {{ config(
@@ -117,10 +120,10 @@ class TestTableWithDistributionKey:
 ) }}
 
 select
-    (random() * 1000)::int as user_id,
-    (random() * 100)::int as product_id,
-    random() * 1000 as amount
-from generate_series(1, 1000)
+    (i % 1000) as user_id,
+    (i % 100) as product_id,
+    (i % 1000)::bigint as amount
+from generate_series(1, 1000) as s(i)
 """,
         }
 
@@ -189,6 +192,7 @@ class TestTableWithMultipleConfigurations:
     @pytest.fixture(scope="class")
     def models(self):
         """Define model with multiple configurations."""
+        # Note: Hologres doesn't support random() function
         return {
             "complex_table.sql": """
 {{ config(
@@ -204,7 +208,7 @@ class TestTableWithMultipleConfigurations:
 
 select
     current_timestamp - (i || ' days')::interval as event_time,
-    (random() * 1000)::int as user_id,
+    (i % 1000) as user_id,
     i as id,
     'data_' || i as name
 from generate_series(1, 100) as s(i)

@@ -40,6 +40,26 @@
 {%- endmacro -%}
 
 
+{%- macro local_date(date_input=none) -%}
+    {#
+        Alias for parse_date for convenience.
+        Provided for compatibility with test fixtures and user convenience.
+
+        Args:
+            date_input: Date string (YYYY-MM-DD, YYYY/MM/DD, YYYYMMDD),
+                       date object, datetime object, or None (returns today)
+
+        Returns:
+            LocalDate instance supporting chainable date operations
+
+        Example:
+            {%- set ds = local_date('2024-01-15') -%}
+            {%- set next_month = ds.add_months(1) -%}
+    #}
+    {% do return(adapter.parse_date(date_input)) %}
+{%- endmacro -%}
+
+
 {%- macro today() -%}
     {#
         Get today's date as a LocalDate instance.

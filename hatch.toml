@@ -79,9 +79,11 @@ dependencies = [
     "ddtrace==2.21.12",
     "freezegun",
     "pytest>=7.0,<8.0",
+    "pytest-dotenv",
     "pytest-mock",
     "pytest-xdist",
 ]
 [envs.cd.scripts]
 unit-tests = "python -m pytest tests/unit --ddtrace"
-integration-tests = "python -m pytest tests/functional --ddtrace"
+functional-tests = "python -m pytest tests/functional --ddtrace"
+integration-tests = "python -m pytest tests/integration --ddtrace"

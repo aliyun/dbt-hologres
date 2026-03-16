@@ -25,6 +25,8 @@ from typing import Dict
 
 # Simple model with basic SELECT
 models__simple_model = """
+{{ config(materialized='table') }}
+
 select
     1 as id,
     'test' as name,
@@ -32,6 +34,7 @@ select
 """
 
 # Model with table materialization and indexes
+# Note: Hologres doesn't support random() function (Single Row Volatile functions)
 models__table_with_index = """
 {{ config(
     materialized='table',
@@ -42,11 +45,13 @@ models__table_with_index = """
 
 select
     generate_series(1, 100) as id,
-    (random() * 1000)::int as user_id,
+    (i % 100) * 10 as user_id,
     'event_' || generate_series(1, 100) as event_name
+from generate_series(1, 100) as s(i)
 """
 
 # Model with table materialization and Hologres properties
+# Note: Hologres doesn't support random() function (Single Row Volatile functions)
 models__table_with_properties = """
 {{ config(
     materialized='table',
@@ -56,11 +61,11 @@ models__table_with_properties = """
 ) }}
 
 select
-    (random() * 1000)::int as user_id,
-    (random() * 100)::int as product_id,
-    random() * 1000 as amount,
+    (i % 100) * 10 as user_id,
+    (i % 10) * 10 as product_id,
+    (i % 1000)::bigint as amount,
     current_timestamp as created_at
-from generate_series(1, 1000)
+from generate_series(1, 1000) as s(i)
 """
 
 # Incremental model with append strategy
@@ -71,11 +76,12 @@ models__incremental_append = """
 ) }}
 
 select
-    generate_series(1, 10) as id,
-    'value_' || generate_series(1, 10) as name
+    i as id,
+    'value_' || i as name
+from generate_series(1, 10) as s(i)
 
 {% if is_incremental() %}
-where id > (select coalesce(max(id), 0) from {{ this }})
+where i > (select coalesce(max(id), 0) from {{ this }})
 {% endif %}
 """
 
@@ -88,8 +94,9 @@ models__incremental_merge = """
 ) }}
 
 select
-    generate_series(1, 10) as id,
-    'updated_' || generate_series(1, 10) as name
+    i as id,
+    'updated_' || i as name
+from generate_series(1, 10) as s(i)
 """
 
 # Dynamic table with basic configuration
@@ -152,6 +159,7 @@ from generate_series(0, 60) as s(i)
 """
 
 # Model with clustering keys
+# Note: Hologres doesn't support random() function (Single Row Volatile functions)
 models__table_with_clustering_keys = """
 {{ config(
     materialized='table',
@@ -160,7 +168,7 @@ models__table_with_clustering_keys = """
 
 select
     current_timestamp - (i || ' days')::interval as event_time,
-    (random() * 1000)::int as user_id,
+    (i % 100) * 10 as user_id,
     'event_' || i as event_name
 from generate_series(1, 100) as s(i)
 """

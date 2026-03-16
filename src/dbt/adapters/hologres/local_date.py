@@ -354,10 +354,13 @@ class LocalDate:
         return (other._date - self._date).days
     
     # ========== Magic Methods ==========
-    
+
     def __str__(self) -> str:
-        """String representation in YYYY-MM-DD format."""
-        return self.format()
+        """String representation in SQL-compatible DATE literal format.
+
+        Returns a DATE literal string like DATE '2024-01-15' for direct use in SQL.
+        """
+        return f"DATE '{self.format()}'"
     
     def __repr__(self) -> str:
         """Debug representation."""
