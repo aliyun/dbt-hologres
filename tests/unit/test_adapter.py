@@ -195,3 +195,147 @@ class TestHologresConfig:
         assert config.orientation == "column"
         assert config.distribution_key == "order_id"
         assert config.logical_partition_key == "ds"
+
+
+class TestHologresAdapterParseDate:
+    """Test HologresAdapter.parse_date method edge cases."""
+
+    def test_parse_date_string(self):
+        """Test parse_date with date string."""
+        from multiprocessing.context import SpawnContext
+        mp_context = SpawnContext()
+        mock_config = mock.MagicMock()
+        adapter = HologresAdapter(mock_config, mp_context)
+
+        ld = adapter.parse_date("2024-06-15")
+        assert ld.year == 2024
+        assert ld.month == 6
+        assert ld.day == 15
+
+    def test_parse_date_none_returns_today(self):
+        """Test parse_date with None returns today."""
+        from multiprocessing.context import SpawnContext
+        from datetime import date
+        mp_context = SpawnContext()
+        mock_config = mock.MagicMock()
+        adapter = HologresAdapter(mock_config, mp_context)
+
+        ld = adapter.parse_date(None)
+        today = date.today()
+        assert ld.year == today.year
+        assert ld.month == today.month
+        assert ld.day == today.day
+
+    def test_parse_date_date_object(self):
+        """Test parse_date with date object."""
+        from multiprocessing.context import SpawnContext
+        from datetime import date
+        mp_context = SpawnContext()
+        mock_config = mock.MagicMock()
+        adapter = HologresAdapter(mock_config, mp_context)
+
+        d = date(2024, 8, 20)
+        ld = adapter.parse_date(d)
+        assert ld.year == 2024
+        assert ld.month == 8
+        assert ld.day == 20
+
+    def test_parse_date_datetime_object(self):
+        """Test parse_date with datetime object."""
+        from multiprocessing.context import SpawnContext
+        from datetime import datetime
+        mp_context = SpawnContext()
+        mock_config = mock.MagicMock()
+        adapter = HologresAdapter(mock_config, mp_context)
+
+        dt = datetime(2024, 7, 20, 15, 30)
+        ld = adapter.parse_date(dt)
+        assert ld.year == 2024
+        assert ld.month == 7
+        assert ld.day == 20
+
+    def test_parse_date_chain_operations(self):
+        """Test parse_date returns chainable LocalDate."""
+        from multiprocessing.context import SpawnContext
+        mp_context = SpawnContext()
+        mock_config = mock.MagicMock()
+        adapter = HologresAdapter(mock_config, mp_context)
+
+        ld = adapter.parse_date("2024-03-15")
+        result = ld.sub_months(2).start_of_month()
+        assert str(result) == "2024-01-01"
+
+
+class TestHologresAdapterToday:
+    """Test HologresAdapter.today method."""
+
+    def test_today_returns_current_date(self):
+        """Test today() returns current date."""
+        from multiprocessing.context import SpawnContext
+        from datetime import date
+        mp_context = SpawnContext()
+        mock_config = mock.MagicMock()
+        adapter = HologresAdapter(mock_config, mp_context)
+
+        ld = adapter.today()
+        today = date.today()
+        assert ld.year == today.year
+        assert ld.month == today.month
+        assert ld.day == today.day
+
+    def test_today_is_local_date(self):
+        """Test today() returns LocalDate instance."""
+        from multiprocessing.context import SpawnContext
+        from dbt.adapters.hologres.local_date import LocalDate
+        mp_context = SpawnContext()
+        mock_config = mock.MagicMock()
+        adapter = HologresAdapter(mock_config, mp_context)
+
+        ld = adapter.today()
+        assert isinstance(ld, LocalDate)
+
+
+class TestHologresAdapterTimestampAdd:
+    """Test HologresAdapter.timestamp_add_sql method edge cases."""
+
+    def test_timestamp_add_negative_number(self):
+        """Test timestamp_add_sql with negative number."""
+        from multiprocessing.context import SpawnContext
+        mp_context = SpawnContext()
+        mock_config = mock.MagicMock()
+        adapter = HologresAdapter(mock_config, mp_context)
+
+        result = adapter.timestamp_add_sql("created_at", -1, "day")
+        assert result == "created_at + interval '-1 day'"
+
+    def test_timestamp_add_zero(self):
+        """Test timestamp_add_sql with zero."""
+        from multiprocessing.context import SpawnContext
+        mp_context = SpawnContext()
+        mock_config = mock.MagicMock()
+        adapter = HologresAdapter(mock_config, mp_context)
+
+        result = adapter.timestamp_add_sql("created_at", 0, "hour")
+        assert result == "created_at + interval '0 hour'"
+
+    def test_timestamp_add_large_number(self):
+        """Test timestamp_add_sql with large number."""
+        from multiprocessing.context import SpawnContext
+        mp_context = SpawnContext()
+        mock_config = mock.MagicMock()
+        adapter = HologresAdapter(mock_config, mp_context)
+
+        result = adapter.timestamp_add_sql("created_at", 365, "day")
+        assert result == "created_at + interval '365 day'"
+
+    def test_timestamp_add_various_intervals(self):
+        """Test timestamp_add_sql with various interval types."""
+        from multiprocessing.context import SpawnContext
+        mp_context = SpawnContext()
+        mock_config = mock.MagicMock()
+        adapter = HologresAdapter(mock_config, mp_context)
+
+        intervals = ["second", "minute", "hour", "day", "week", "month", "year"]
+        for interval in intervals:
+            result = adapter.timestamp_add_sql("ts", 1, interval)
+            assert f"1 {interval}" in result

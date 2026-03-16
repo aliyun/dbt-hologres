@@ -250,3 +250,216 @@ class TestHologresConnectionManager:
         manager = HologresConnectionManager(mock.MagicMock(), mp_context)
         manager.add_begin_query()  # Should not raise any exception
 
+
+class TestHologresConnectionManagerOpen:
+    """Test HologresConnectionManager.open method."""
+
+    @mock.patch("dbt.adapters.hologres.connections.psycopg.connect")
+    def test_open_already_open_connection(self, mock_connect):
+        """Test open skips when connection is already open."""
+        connection = mock.MagicMock()
+        connection.state = "open"
+
+        result = HologresConnectionManager.open(connection)
+
+        mock_connect.assert_not_called()
+        assert result == connection
+
+    @mock.patch("dbt.adapters.hologres.connections.psycopg.connect")
+    def test_open_sets_autocommit(self, mock_connect):
+        """Test open sets autocommit mode for CTAS."""
+        mock_handle = mock.MagicMock()
+        mock_handle.info.backend_pid = 12345
+        mock_connect.return_value = mock_handle
+
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+        )
+
+        connection = mock.MagicMock()
+        connection.state = "init"
+        connection.credentials = creds
+        connection.name = "test_connection"
+
+        HologresConnectionManager.open(connection)
+
+        assert mock_handle.autocommit is True
+
+    @mock.patch("dbt.adapters.hologres.connections.psycopg.connect")
+    def test_open_sets_search_path(self, mock_connect):
+        """Test open sets search_path when specified."""
+        mock_handle = mock.MagicMock()
+        mock_handle.info.backend_pid = 12345
+        mock_cursor = mock.MagicMock()
+        mock_handle.cursor.return_value.__enter__ = mock.MagicMock(return_value=mock_cursor)
+        mock_handle.cursor.return_value.__exit__ = mock.MagicMock(return_value=False)
+        mock_connect.return_value = mock_handle
+
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+            search_path="public,raw",
+        )
+
+        connection = mock.MagicMock()
+        connection.state = "init"
+        connection.credentials = creds
+        connection.name = "test_connection"
+
+        HologresConnectionManager.open(connection)
+
+        # Verify search_path was set
+        mock_cursor.execute.assert_called()
+
+    @mock.patch("dbt.adapters.hologres.connections.psycopg.connect")
+    def test_open_sets_role(self, mock_connect):
+        """Test open sets role when specified."""
+        mock_handle = mock.MagicMock()
+        mock_handle.info.backend_pid = 12345
+        mock_cursor = mock.MagicMock()
+        mock_handle.cursor.return_value.__enter__ = mock.MagicMock(return_value=mock_cursor)
+        mock_handle.cursor.return_value.__exit__ = mock.MagicMock(return_value=False)
+        mock_connect.return_value = mock_handle
+
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+            role="admin_role",
+        )
+
+        connection = mock.MagicMock()
+        connection.state = "init"
+        connection.credentials = creds
+        connection.name = "test_connection"
+
+        HologresConnectionManager.open(connection)
+
+        # Verify role was set
+        mock_cursor.execute.assert_called()
+
+    @mock.patch("dbt.adapters.hologres.connections.psycopg.connect")
+    def test_open_with_sslmode(self, mock_connect):
+        """Test open passes sslmode to connection."""
+        mock_handle = mock.MagicMock()
+        mock_handle.info.backend_pid = 12345
+        mock_connect.return_value = mock_handle
+
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+            sslmode="require",
+        )
+
+        connection = mock.MagicMock()
+        connection.state = "init"
+        connection.credentials = creds
+        connection.name = "test_connection"
+
+        HologresConnectionManager.open(connection)
+
+        # Verify sslmode was passed
+        call_kwargs = mock_connect.call_args[1]
+        assert call_kwargs.get("sslmode") == "require"
+
+
+class TestHologresCredentialsValidation:
+    """Test HologresCredentials validation."""
+
+    def test_port_boundary_minimum(self):
+        """Test port at minimum valid value."""
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+            port=0,
+        )
+        assert creds.port == 0
+
+    def test_port_boundary_maximum(self):
+        """Test port at maximum valid value."""
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+            port=65535,
+        )
+        assert creds.port == 65535
+
+    def test_port_invalid_above_maximum(self):
+        """Test port above maximum raises validation error."""
+        with pytest.raises((ValueError, TypeError)):
+            HologresCredentials(
+                host="test.hologres.aliyuncs.com",
+                user="test_user",
+                password="test_password",
+                database="test_db",
+                schema="public",
+                port=70000,
+            )
+
+
+class TestGetResponse:
+    """Test HologresConnectionManager.get_response method."""
+
+    def test_get_response_with_status_message(self):
+        """Test get_response parses status message."""
+        mock_cursor = mock.MagicMock()
+        mock_cursor.statusmessage = "INSERT 0 100"
+        mock_cursor.rowcount = 100
+
+        response = HologresConnectionManager.get_response(mock_cursor)
+
+        assert response._message == "INSERT 0 100"
+        assert response.code == "INSERT"
+        assert response.rows_affected == 100
+
+    def test_get_response_with_update(self):
+        """Test get_response handles UPDATE status."""
+        mock_cursor = mock.MagicMock()
+        mock_cursor.statusmessage = "UPDATE 50"
+        mock_cursor.rowcount = 50
+
+        response = HologresConnectionManager.get_response(mock_cursor)
+
+        assert response.code == "UPDATE"
+        assert response.rows_affected == 50
+
+    def test_get_response_with_delete(self):
+        """Test get_response handles DELETE status."""
+        mock_cursor = mock.MagicMock()
+        mock_cursor.statusmessage = "DELETE 25"
+        mock_cursor.rowcount = 25
+
+        response = HologresConnectionManager.get_response(mock_cursor)
+
+        assert response.code == "DELETE"
+        assert response.rows_affected == 25
+
+    def test_get_response_complex_status(self):
+        """Test get_response handles complex status message."""
+        mock_cursor = mock.MagicMock()
+        mock_cursor.statusmessage = "SELECT 1000"
+        mock_cursor.rowcount = 1000
+
+        response = HologresConnectionManager.get_response(mock_cursor)
+
+        assert response.code == "SELECT"
+        assert response.rows_affected == 1000
+

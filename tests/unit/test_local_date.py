@@ -392,7 +392,7 @@ class TestParseDateFunction:
 
 class TestTodayFunction:
     """Test the today function."""
-    
+
     def test_today_returns_current_date(self):
         """Test today() returns current date."""
         ld = today()
@@ -400,3 +400,84 @@ class TestTodayFunction:
         assert ld.year == today_date.year
         assert ld.month == today_date.month
         assert ld.day == today_date.day
+
+
+class TestLocalDateWeekMethods:
+    """Test LocalDate week-related methods."""
+
+    def test_start_of_week_default_monday(self):
+        """Test start_of_week defaults to Monday."""
+        # 2024-01-17 is a Wednesday
+        ld = LocalDate("2024-01-17")
+        result = ld.start_of_week()
+        # Should return Monday 2024-01-15
+        assert str(result) == "2024-01-15"
+
+    def test_start_of_week_sunday_start(self):
+        """Test start_of_week with Sunday as week start."""
+        # 2024-01-17 is a Wednesday
+        ld = LocalDate("2024-01-17")
+        result = ld.start_of_week(start_day=6)  # Sunday = 6
+        # Should return Sunday 2024-01-14
+        assert str(result) == "2024-01-14"
+
+    def test_end_of_week_default_sunday(self):
+        """Test end_of_week defaults to Sunday."""
+        # 2024-01-17 is a Wednesday
+        ld = LocalDate("2024-01-17")
+        result = ld.end_of_week()
+        # Should return Sunday 2024-01-21
+        assert str(result) == "2024-01-21"
+
+    def test_start_of_week_already_monday(self):
+        """Test start_of_week when already Monday."""
+        # 2024-01-15 is a Monday
+        ld = LocalDate("2024-01-15")
+        result = ld.start_of_week()
+        assert str(result) == "2024-01-15"
+
+    def test_end_of_week_already_sunday(self):
+        """Test end_of_week when already Sunday."""
+        # 2024-01-21 is a Sunday
+        ld = LocalDate("2024-01-21")
+        result = ld.end_of_week()
+        assert str(result) == "2024-01-21"
+
+
+class TestLocalDateDayOfYear:
+    """Test LocalDate day_of_year property."""
+
+    def test_day_of_year_january_1(self):
+        """Test day_of_year for January 1st."""
+        ld = LocalDate("2024-01-01")
+        assert ld.day_of_year == 1
+
+    def test_day_of_year_february_1(self):
+        """Test day_of_year for February 1st."""
+        ld = LocalDate("2024-02-01")
+        # January has 31 days, so Feb 1 is day 32
+        assert ld.day_of_year == 32
+
+    def test_day_of_year_december_31(self):
+        """Test day_of_year for December 31st."""
+        ld = LocalDate("2024-12-31")
+        # 2024 is a leap year, so 366 days
+        assert ld.day_of_year == 366
+
+    def test_day_of_year_december_31_non_leap(self):
+        """Test day_of_year for December 31st in non-leap year."""
+        ld = LocalDate("2023-12-31")
+        # 2023 is not a leap year, so 365 days
+        assert ld.day_of_year == 365
+
+    def test_day_of_year_leap_day(self):
+        """Test day_of_year for February 29 in leap year."""
+        ld = LocalDate("2024-02-29")
+        # Jan (31) + Feb (29) = 60, but this is Feb 29
+        assert ld.day_of_year == 60
+
+    def test_day_of_year_mid_year(self):
+        """Test day_of_year for a mid-year date."""
+        ld = LocalDate("2024-06-15")
+        # Jan(31) + Feb(29) + Mar(31) + Apr(30) + May(31) + 15 = 167
+        assert ld.day_of_year == 167
