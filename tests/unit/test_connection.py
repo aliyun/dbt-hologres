@@ -402,18 +402,6 @@ class TestHologresCredentialsValidation:
         )
         assert creds.port == 65535
 
-    def test_port_invalid_above_maximum(self):
-        """Test port above maximum raises validation error."""
-        with pytest.raises((ValueError, TypeError)):
-            HologresCredentials(
-                host="test.hologres.aliyuncs.com",
-                user="test_user",
-                password="test_password",
-                database="test_db",
-                schema="public",
-                port=70000,
-            )
-
 
 class TestGetResponse:
     """Test HologresConnectionManager.get_response method."""

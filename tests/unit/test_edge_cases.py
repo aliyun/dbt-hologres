@@ -194,12 +194,13 @@ class TestCredentialsEdgeCases:
 
     def test_empty_schema_defaults_to_empty_string(self):
         """Test that empty schema is set to empty string."""
-        creds = HologresCredentials(
-            host="test.hologres.aliyuncs.com",
-            user="test_user",
-            password="test_password",
-            database="test_db",
-        )
+        # Use from_dict to trigger __pre_deserialize__ which sets default schema
+        creds = HologresCredentials.from_dict({
+            "host": "test.hologres.aliyuncs.com",
+            "user": "test_user",
+            "password": "test_password",
+            "database": "test_db",
+        })
         assert creds.schema == ""
 
     def test_special_characters_in_host(self):

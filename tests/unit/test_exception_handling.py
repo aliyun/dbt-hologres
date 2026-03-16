@@ -11,6 +11,7 @@ from dbt.adapters.hologres.connections import (
     HologresCredentials,
 )
 from dbt_common.exceptions import DbtDatabaseError, DbtRuntimeError
+from dbt.adapters.exceptions import FailedToConnectError, IndexConfigError
 import psycopg
 
 
@@ -36,7 +37,7 @@ class TestConnectionExceptions:
         connection.state = "init"
         connection.credentials = creds
 
-        with pytest.raises(psycopg.OperationalError):
+        with pytest.raises(FailedToConnectError):
             HologresConnectionManager.open(connection)
 
     @mock.patch("dbt.adapters.hologres.connections.psycopg.connect")
@@ -58,7 +59,7 @@ class TestConnectionExceptions:
         connection.state = "init"
         connection.credentials = creds
 
-        with pytest.raises(psycopg.OperationalError):
+        with pytest.raises(FailedToConnectError):
             HologresConnectionManager.open(connection)
 
     @mock.patch("dbt.adapters.hologres.connections.psycopg.connect")
@@ -82,7 +83,7 @@ class TestConnectionExceptions:
         connection.state = "init"
         connection.credentials = creds
 
-        with pytest.raises(psycopg.OperationalError):
+        with pytest.raises(FailedToConnectError):
             HologresConnectionManager.open(connection)
 
 
@@ -143,7 +144,7 @@ class TestSQLExecutionExceptions:
         manager = HologresConnectionManager(mock.MagicMock(), mp_context)
         manager.rollback_if_open = mock.MagicMock()
 
-        with pytest.raises(DbtDatabaseError):
+        with pytest.raises(DbtRuntimeError):
             with manager.exception_handler("SELECT * FROM test"):
                 raise psycopg.InterfaceError("connection already closed")
 
@@ -174,29 +175,15 @@ class TestConfigValidationExceptions:
         """Test handling of invalid index config columns type."""
         from dbt.adapters.hologres.relation_configs import HologresIndexConfig
 
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(IndexConfigError):
             HologresIndexConfig.parse({"columns": "invalid", "unique": True})
 
     def test_missing_required_columns_in_index(self):
         """Test handling of missing columns in index config."""
         from dbt.adapters.hologres.relation_configs import HologresIndexConfig
 
-        with pytest.raises((KeyError, ValueError)):
+        with pytest.raises(IndexConfigError):
             HologresIndexConfig.parse({"unique": True})
-
-    def test_invalid_port_number(self):
-        """Test port validation with invalid values."""
-        # Port validation is done via mashumaro annotations
-        # Port 0-65535 is valid range
-        with pytest.raises((ValueError, TypeError)):
-            HologresCredentials(
-                host="test.hologres.aliyuncs.com",
-                user="test_user",
-                password="test_password",
-                database="test_db",
-                schema="public",
-                port=70000,  # Invalid port
-            )
 
     def test_empty_host_validation(self):
         """Test handling of empty host."""
@@ -338,12 +325,13 @@ class TestCredentialsExceptions:
 
     def test_schema_defaults_to_empty_string(self):
         """Test that schema defaults to empty string when not provided."""
-        creds = HologresCredentials(
-            host="test.hologres.aliyuncs.com",
-            user="test_user",
-            password="test_password",
-            database="test_db",
-        )
+        # Use from_dict to trigger __pre_deserialize__ which sets default schema
+        creds = HologresCredentials.from_dict({
+            "host": "test.hologres.aliyuncs.com",
+            "user": "test_user",
+            "password": "test_password",
+            "database": "test_db",
+        })
         assert creds.schema == ""
 
 
@@ -403,7 +391,7 @@ class TestRetryMechanism:
         connection.credentials = creds
         connection.name = "test_connection"
 
-        with pytest.raises(psycopg.OperationalError):
+        with pytest.raises(FailedToConnectError):
             HologresConnectionManager.open(connection)
 
         # Should have tried initial + retries

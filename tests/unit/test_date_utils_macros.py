@@ -108,7 +108,9 @@ class TestTodayMacro:
         ld = today()
         last_week = ld.sub_days(7)
         # Verify the date is 7 days ago
-        assert ld.days_between(last_week) == 7
+        # days_between(other) returns (other._date - self._date).days
+        # last_week is 7 days before ld, so last_week.days_between(ld) = 7
+        assert last_week.days_between(ld) == 7
 
 
 class TestDsMacro:

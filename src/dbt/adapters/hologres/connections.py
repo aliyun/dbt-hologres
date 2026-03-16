@@ -77,11 +77,6 @@ class HologresCredentials(Credentials):
             "retries",
         )
 
-    def __post_init__(self):
-        # Set application_name with version if not provided
-        if not self.application_name:
-            self.application_name = f"dbt_hologres_{version}"
-
 
 class HologresConnectionManager(SQLConnectionManager):
     TYPE = "hologres"

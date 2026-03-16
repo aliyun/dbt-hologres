@@ -357,16 +357,16 @@ This project includes comprehensive unit tests with mocked database connections.
 pip install hatch
 
 # Run all unit tests
-hatch run unit-tests
+hatch -e cd run unit-tests
 
 # Run a specific test file
-hatch run unit-tests tests/unit/test_adapter.py
+hatch -e cd run unit-tests tests/unit/test_adapter.py
 
 # Run a specific test class
-hatch run unit-tests tests/unit/test_adapter.py::TestHologresAdapter
+hatch -e cd run unit-tests tests/unit/test_adapter.py::TestHologresAdapter
 
 # Run a specific test method
-hatch run unit-tests tests/unit/test_adapter.py::TestHologresAdapter::test_date_function
+hatch -e cd run unit-tests tests/unit/test_adapter.py::TestHologresAdapter::test_date_function
 ```
 
 ### Using pytest Directly

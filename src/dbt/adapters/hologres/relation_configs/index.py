@@ -11,11 +11,25 @@ from dbt_common.utils import encoding as dbt_encoding
 from dbt.adapters.exceptions import IndexConfigError, IndexConfigNotDictError
 
 
-@dataclass
+@dataclass(frozen=True, eq=True)
 class HologresIndexConfig(dbtClassMixin):
     columns: List[str]
     unique: bool = False
     type: Optional[str] = None
+
+    def __hash__(self) -> int:
+        """Custom hash to handle List[str] columns field."""
+        return hash((tuple(self.columns), self.unique, self.type))
+
+    def __eq__(self, other: object) -> bool:
+        """Custom equality to handle List[str] columns field."""
+        if not isinstance(other, HologresIndexConfig):
+            return NotImplemented
+        return (
+            self.columns == other.columns
+            and self.unique == other.unique
+            and self.type == other.type
+        )
 
     def render(self, relation):
         # We append the current timestamp to the index name because otherwise
