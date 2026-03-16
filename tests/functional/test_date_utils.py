@@ -48,17 +48,17 @@ class TestLocalDateMacro:
 
 select
     -- Basic date parsing
-    {{ local_date('2024-01-15') }} as base_date,
+    {{local_date('2024-01-15').to_sql() }} as base_date,
 
     -- Subtraction operations
-    {{ local_date('2024-01-15').sub_days(7) }} as week_ago,
-    {{ local_date('2024-01-15').sub_months(1) }} as month_ago,
-    {{ local_date('2024-01-15').sub_years(1) }} as year_ago,
+    {{local_date('2024-01-15').sub_days(7).to_sql() }} as week_ago,
+    {{local_date('2024-01-15').sub_months(1).to_sql() }} as month_ago,
+    {{local_date('2024-01-15').sub_years(1).to_sql() }} as year_ago,
 
     -- Addition operations
-    {{ local_date('2024-01-15').add_days(10) }} as ten_days_later,
-    {{ local_date('2024-01-15').add_months(2) }} as two_months_later,
-    {{ local_date('2024-01-15').add_years(1) }} as next_year
+    {{local_date('2024-01-15').add_days(10).to_sql() }} as ten_days_later,
+    {{local_date('2024-01-15').add_months(2).to_sql() }} as two_months_later,
+    {{local_date('2024-01-15').add_years(1).to_sql() }} as next_year
 """,
         }
 
@@ -81,16 +81,16 @@ class TestLocalDatePeriodBoundaries:
 
 select
     -- Month boundaries
-    {{ local_date('2024-01-15').start_of_month() }} as month_start,
-    {{ local_date('2024-01-15').end_of_month() }} as month_end,
+    {{local_date('2024-01-15').start_of_month().to_sql() }} as month_start,
+    {{local_date('2024-01-15').end_of_month().to_sql() }} as month_end,
 
     -- Quarter boundaries
-    {{ local_date('2024-02-15').start_of_quarter() }} as quarter_start,
-    {{ local_date('2024-02-15').end_of_quarter() }} as quarter_end,
+    {{local_date('2024-02-15').start_of_quarter().to_sql() }} as quarter_start,
+    {{local_date('2024-02-15').end_of_quarter().to_sql() }} as quarter_end,
 
     -- Year boundaries
-    {{ local_date('2024-06-15').start_of_year() }} as year_start,
-    {{ local_date('2024-06-15').end_of_year() }} as year_end
+    {{local_date('2024-06-15').start_of_year().to_sql() }} as year_start,
+    {{local_date('2024-06-15').end_of_year().to_sql() }} as year_end
 """,
         }
 
@@ -113,16 +113,16 @@ class TestLocalDateChainedOperations:
 
 select
     -- Chain: subtract months then get start of month
-    {{ local_date('2024-03-15').sub_months(2).start_of_month() }} as two_months_ago_start,
+    {{local_date('2024-03-15').sub_months(2).start_of_month().to_sql() }} as two_months_ago_start,
 
     -- Chain: subtract days then get end of month
-    {{ local_date('2024-02-20').sub_days(10).end_of_month() }} as adjusted_month_end,
+    {{local_date('2024-02-20').sub_days(10).end_of_month().to_sql() }} as adjusted_month_end,
 
     -- Chain: add months then get start of quarter
-    {{ local_date('2024-01-15').add_months(3).start_of_quarter() }} as future_quarter_start,
+    {{local_date('2024-01-15').add_months(3).start_of_quarter().to_sql() }} as future_quarter_start,
 
     -- Chain: subtract years then get end of year
-    {{ local_date('2024-06-15').sub_years(1).end_of_year() }} as last_year_end
+    {{local_date('2024-06-15').sub_years(1).end_of_year().to_sql() }} as last_year_end
 """,
         }
 
@@ -144,11 +144,11 @@ class TestLocalDateToday:
 {{ config(materialized='table') }}
 
 select
-    {{ today() }} as today_date,
-    {{ today().sub_days(1) }} as yesterday,
-    {{ today().add_days(1) }} as tomorrow,
-    {{ today().start_of_month() }} as month_start,
-    {{ today().end_of_month() }} as month_end
+    {{today().to_sql() }} as today_date,
+    {{today().sub_days(1).to_sql() }} as yesterday,
+    {{today().add_days(1).to_sql() }} as tomorrow,
+    {{today().start_of_month().to_sql() }} as month_start,
+    {{today().end_of_month().to_sql() }} as month_end
 """,
         }
 
@@ -171,10 +171,10 @@ class TestLocalDateWithParseDate:
 
 select
     -- Parse date string
-    {{ parse_date('2024-06-15') }} as parsed_date,
+    {{parse_date('2024-06-15').to_sql() }} as parsed_date,
 
     -- Parse and perform operations
-    {{ parse_date('2024-06-15').sub_days(30) }} as thirty_days_ago,
+    {{parse_date('2024-06-15').sub_days(30).to_sql() }} as thirty_days_ago,
 
     -- Parse date from variable
     {% set my_date = parse_date('2024-01-01') %}
@@ -203,10 +203,10 @@ class TestLocalDateWithVariables:
 {%- set end_date = parse_date('2024-12-31') -%}
 
 select
-    {{ base }} as start_date,
-    {{ end_date }} as end_date,
-    {{ base.add_days(30) }} as start_plus_30,
-    {{ end_date.sub_days(7) }} as end_minus_7
+    {{ base.to_sql() }} as start_date,
+    {{ end_date.to_sql() }} as end_date,
+    {{ base.add_days(30).to_sql() }} as start_plus_30,
+    {{ end_date.sub_days(7).to_sql() }} as end_minus_7
 """,
         }
 
@@ -248,8 +248,8 @@ select
     event_name,
     value
 from {{ ref('event_data') }}
-where event_date >= {{ start_date }}
-  and event_date <= {{ end_date }}
+where event_date >= {{ start_date.to_sql() }}
+  and event_date <= {{ end_date.to_sql() }}
 """,
         }
 
@@ -308,15 +308,15 @@ class TestLocalDateEdgeCases:
 
 select
     -- Leap year handling
-    {{ local_date('2024-02-29').add_years(1) }} as leap_year_next,  -- 2025-02-28
-    {{ local_date('2024-02-29').sub_years(4) }} as leap_year_prev,  -- 2020-02-29
+    {{local_date('2024-02-29').add_years(1).to_sql() }} as leap_year_next,  -- 2025-02-28
+    {{local_date('2024-02-29').sub_years(4).to_sql() }} as leap_year_prev,  -- 2020-02-29
 
     -- Month end handling (Jan 31 + 1 month = Feb 28/29)
-    {{ local_date('2024-01-31').add_months(1) }} as jan31_plus_month,
+    {{local_date('2024-01-31').add_months(1).to_sql() }} as jan31_plus_month,
 
     -- Year boundary crossing
-    {{ local_date('2024-12-25').add_days(10) }} as crossing_year_end,
-    {{ local_date('2024-01-05').sub_days(10) }} as crossing_year_start
+    {{local_date('2024-12-25').add_days(10).to_sql() }} as crossing_year_end,
+    {{local_date('2024-01-05').sub_days(10).to_sql() }} as crossing_year_start
 """,
         }
 

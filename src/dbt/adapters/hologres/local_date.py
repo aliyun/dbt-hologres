@@ -356,9 +356,16 @@ class LocalDate:
     # ========== Magic Methods ==========
 
     def __str__(self) -> str:
-        """String representation in SQL-compatible DATE literal format.
+        """String representation in YYYY-MM-DD format."""
+        return self.format()
+
+    def to_sql(self) -> str:
+        """Return SQL-compatible DATE literal format.
 
         Returns a DATE literal string like DATE '2024-01-15' for direct use in SQL.
+
+        Returns:
+            SQL DATE literal string
         """
         return f"DATE '{self.format()}'"
     

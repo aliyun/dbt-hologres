@@ -178,10 +178,10 @@ models__with_date_utils = """
 {{ config(materialized='table') }}
 
 select
-    {{ local_date('2024-01-15') }} as base_date,
-    {{ local_date('2024-01-15').sub_days(7) }} as week_ago,
-    {{ local_date('2024-01-15').start_of_month() }} as month_start,
-    {{ local_date('2024-01-15').end_of_month() }} as month_end
+    {{ local_date('2024-01-15').to_sql() }} as base_date,
+    {{local_date('2024-01-15').sub_days(7).to_sql() }} as week_ago,
+    {{local_date('2024-01-15').start_of_month().to_sql() }} as month_start,
+    {{local_date('2024-01-15').end_of_month().to_sql() }} as month_end
 """
 
 # Model with dependencies (downstream)

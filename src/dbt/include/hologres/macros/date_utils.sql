@@ -23,18 +23,21 @@
 {%- macro parse_date(date_input=none) -%}
     {#
         Parse a date string or object into a LocalDate instance.
-        
+
         Args:
-            date_input: Date string (YYYY-MM-DD, YYYY/MM/DD, YYYYMMDD), 
+            date_input: Date string (YYYY-MM-DD, YYYY/MM/DD, YYYYMMDD),
                        date object, datetime object, or None (returns today)
-        
+
         Returns:
             LocalDate instance supporting chainable date operations
-            
+
         Example:
             {%- set ds = parse_date('2024-01-15') -%}
             {%- set last_month = ds.sub_months(1) -%}
-            {{ last_month }}  -- Output: 2023-12-15
+            {{ last_month.to_sql() }}  -- Output: DATE '2023-12-15'
+
+        Note: When used directly in SQL (e.g., {{ parse_date('2024-01-15') }}),
+              use .to_sql() method to get SQL-compatible format: DATE '2024-01-15'
     #}
     {% do return(adapter.parse_date(date_input)) %}
 {%- endmacro -%}
