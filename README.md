@@ -493,6 +493,54 @@ Integration tests create unique schemas for each test to ensure isolation:
 - Tests clean up their schemas automatically after completion
 - Failed tests still attempt cleanup
 
+## Functional Tests
+
+Functional tests use the official dbt test framework (`dbt-tests-adapter`) to verify
+end-to-end dbt operations against a Hologres database.
+
+### Test Structure
+
+```
+tests/functional/
+├── conftest.py              # dbt test framework configuration
+├── fixtures.py              # Shared test models and seeds
+├── test_basic.py            # Basic dbt run, seed, compile tests
+├── test_materializations/
+│   ├── test_table.py        # Table materialization tests
+│   ├── test_incremental.py  # Incremental model tests
+│   └── test_dynamic_table.py # Dynamic table tests
+├── test_logical_partition.py # Logical partition tests
+└── test_date_utils.py       # Date utility macro tests
+```
+
+### Running Functional Tests
+
+```bash
+# Set required environment variables
+export DBT_HOLOGRES_RUN_FUNCTIONAL_TESTS=true
+export DBT_HOLOGRES_HOST=your-hologres-host
+export DBT_HOLOGRES_USER=your-user
+export DBT_HOLOGRES_PASSWORD=your-password
+export DBT_HOLOGRES_DATABASE=your-database
+
+# Run using Hatch
+hatch -e cd run integration-tests
+
+# Or run directly with pytest
+python -m pytest tests/functional/ -v
+```
+
+### Test Coverage
+
+| Test File | Test Classes | Coverage |
+|-----------|--------------|----------|
+| test_basic.py | 5 | Basic run, seed, compile, test operations |
+| test_table.py | 9 | Table materialization with indexes, properties |
+| test_incremental.py | 8 | Incremental strategies (append, merge, delete+insert) |
+| test_dynamic_table.py | 8 | Dynamic table creation and auto-refresh |
+| test_logical_partition.py | 9 | Logical partition with single/multiple keys |
+| test_date_utils.py | 10 | LocalDate operations and date macros |
+
 ## Resources
 
 - [dbt Documentation](https://docs.getdbt.com)

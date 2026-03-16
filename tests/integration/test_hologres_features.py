@@ -84,28 +84,18 @@ from generate_series(1, 100) as s(i)
         result = dbt_runner.invoke(["run"])
         assert result.success
 
-    @pytest.mark.skip(reason="Segment key requires NOT NULL constraint which is not easily supported with seed data")
     def test_table_with_segment_key(self, dbt_project_dir: Path, dbt_runner, cleanup_schema):
         """Test creating a table with segment key."""
-        # Create seed data first
-        events_csv = """event_time,value
-2024-01-15 00:00:00,100
-2024-01-16 00:00:00,200
-2024-02-10 00:00:00,150
-2024-02-15 00:00:00,250
-"""
-        create_seed_file(dbt_project_dir, "events_data3", events_csv)
-
-        result = dbt_runner.invoke(["seed"])
-        assert result.success
-
         model_sql = """
 {{ config(
     materialized='table',
-    segment_key='value'
+    segment_key='event_time'
 ) }}
 
-select event_time, value from {{ ref('events_data3') }}
+select
+    (current_timestamp - (i || ' days')::interval) as event_time,
+    i as value
+from generate_series(1, 100) as s(i)
 """
         # create_model_file is defined at module level
         create_model_file(dbt_project_dir, "segmented_table", model_sql)
