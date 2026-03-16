@@ -171,7 +171,7 @@ The adapter provides a powerful `LocalDate` class for date manipulation in Jinja
 |----------|---------|
 | **Arithmetic** | `add_days()`, `sub_days()`, `add_months()`, `sub_months()`, `add_years()`, `sub_years()` |
 | **Period Boundaries** | `start_of_month()`, `end_of_month()`, `start_of_quarter()`, `end_of_quarter()`, `start_of_year()`, `end_of_year()`, `start_of_week()`, `end_of_week()` |
-| **Formatting** | `format()`, `str()` |
+| **Formatting** | `format()`, `str()`, `to_sql()` |
 | **Comparison** | `is_before()`, `is_after()`, `is_equal()`, `days_between()` |
 | **Properties** | `year`, `month`, `day`, `quarter`, `day_of_year` |
 
@@ -218,7 +218,24 @@ logical partition by list ({{ partition_columns }});
 
 #### Date Utility Macros
 
+The following macros are available for date operations:
+
+| Macro | Description |
+|-------|-------------|
+| `parse_date(date_input)` | Parse date string into LocalDate object |
+| `local_date(date_input)` | Alias for `parse_date()`, providing more intuitive naming |
+| `today()` | Get today's date as LocalDate |
+| `ds()` | Get execution date from `EXECUTION_DATE` variable or environment |
+| `format_date(local_date, format_str)` | Format LocalDate to string |
+
+**Example usage in SQL:**
+
 ```jinja2
+{# Using local_date macro with to_sql() for SQL-compatible output #}
+select
+    {{ local_date('2024-01-15').to_sql() }} as base_date,
+    {{ local_date('2024-01-15').sub_days(7).to_sql() }} as week_ago
+
 {# Date range generation #}
 {%- set start = adapter.parse_date('2024-01-01') -%}
 {%- set end = adapter.parse_date('2024-01-05') -%}

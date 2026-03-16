@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1]
+
+### Features
+
+- **LocalDate Enhancements**:
+  - Added `local_date()` macro as an alias for `parse_date()`, providing more intuitive naming
+  - Added `LocalDate.to_sql()` method that returns SQL-compatible date literal format (e.g., `DATE '2024-01-15'`)
+
+### Bug Fixes
+
+- **Hologres Compatibility**:
+  - Implemented Hologres-compatible incremental strategies (`INSERT ON CONFLICT`, `delete+insert`)
+  - Fixed functional tests by removing unsupported `random()` function (Hologres doesn't support Single Row Volatile functions)
+
 ## [1.1.0]
 
 ### Features
