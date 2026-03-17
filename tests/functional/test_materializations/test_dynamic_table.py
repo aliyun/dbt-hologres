@@ -362,3 +362,130 @@ select id, value from {{ ref('recreate_source') }}
         results = run_dbt(["run"])
         assert len(results) == 1
         assert results[0].status == "success"
+
+
+class TestDynamicTableWithComputingResource:
+    """Tests for dynamic table with computing_resource configuration."""
+
+    @pytest.fixture(scope="class")
+    def seeds(self):
+        """Define seed data for computing resource tests."""
+        return {
+            "computing_data.csv": """id,user_id,amount,created_at
+1,100,150.00,2024-01-01 10:00:00
+2,100,250.00,2024-01-01 11:00:00
+3,200,100.00,2024-01-01 12:00:00
+4,200,300.00,2024-01-01 13:00:00
+""",
+        }
+
+    @pytest.fixture(scope="class")
+    def models(self):
+        """Define dynamic table with computing resource."""
+        return {
+            "serverless_dynamic_table.sql": """
+{{ config(
+    materialized='dynamic_table',
+    target_lag='15 minutes',
+    computing_resource='serverless'
+) }}
+
+select
+    user_id,
+    count(*) as transaction_count,
+    sum(amount) as total_amount
+from {{ ref('computing_data') }}
+group by user_id
+""",
+        }
+
+    def test_computing_resource_serverless(self, project):
+        """Test dynamic table with serverless computing resource."""
+        run_dbt(["seed"])
+        results = run_dbt(["run"])
+        assert len(results) == 1
+        assert results[0].status == "success"
+
+
+class TestDynamicTableWithDefaultComputingResource:
+    """Tests for dynamic table with default computing resource."""
+
+    @pytest.fixture(scope="class")
+    def seeds(self):
+        """Define seed data for default resource tests."""
+        return {
+            "default_resource_data.csv": """id,category,value
+1,A,100
+2,B,200
+3,A,150
+4,B,250
+""",
+        }
+
+    @pytest.fixture(scope="class")
+    def models(self):
+        """Define dynamic table without explicit computing resource."""
+        return {
+            "default_resource_dynamic_table.sql": """
+{{ config(
+    materialized='dynamic_table',
+    target_lag='20 minutes'
+) }}
+
+select
+    category,
+    count(*) as item_count,
+    sum(value) as total_value
+from {{ ref('default_resource_data') }}
+group by category
+""",
+        }
+
+    def test_computing_resource_default(self, project):
+        """Test dynamic table with default computing resource."""
+        run_dbt(["seed"])
+        results = run_dbt(["run"])
+        assert len(results) == 1
+        assert results[0].status == "success"
+
+
+class TestDynamicTableWithSqlHeaderAndComputingResource:
+    """Tests for dynamic table with both sql_header and computing_resource."""
+
+    @pytest.fixture(scope="class")
+    def seeds(self):
+        """Define seed data for combined config tests."""
+        return {
+            "combined_config_data.csv": """id,name,value
+1,alpha,100
+2,beta,200
+3,gamma,300
+""",
+        }
+
+    @pytest.fixture(scope="class")
+    def models(self):
+        """Define dynamic table with sql_header and computing resource."""
+        return {
+            "combined_config_dynamic_table.sql": """
+{{ config(
+    materialized='dynamic_table',
+    target_lag='10 minutes',
+    sql_header="SET TIME ZONE 'UTC';"
+) }}
+
+select
+    id,
+    name,
+    value,
+    value * 2 as doubled_value
+from {{ ref('combined_config_data') }}
+""",
+        }
+
+    def test_dynamic_table_with_sql_header(self, project):
+        """Test dynamic table with sql_header configuration."""
+        run_dbt(["seed"])
+        results = run_dbt(["run"])
+        assert len(results) == 1
+        assert results[0].status == "success"

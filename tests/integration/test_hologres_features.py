@@ -265,18 +265,16 @@ class TestHologresDataTypes:
     def test_table_with_roaringbitmap(self, dbt_project_dir: Path, dbt_runner, cleanup_schema):
         """Test table with ROARINGBITMAP type."""
         model_sql = """
+{{ config(materialized='table') }}
+
 select
     1 as id,
-    build_roaring_bitmap(array[1,2,3,4,5]) as user_ids
+    rb_build(array[1,2,3,4,5]) as user_ids
 """
-        # create_model_file is defined at module level
         create_model_file(dbt_project_dir, "bitmap_test", model_sql)
 
         result = dbt_runner.invoke(["run"])
-        # Note: This may fail if roaringbitmap functions are not available
-        # Just checking that it doesn't crash the adapter
-        if not result.success:
-            pytest.skip("ROARINGBITMAP functions not available in this Hologres instance")
+        assert result.success, f"RoaringBitmap test failed: {result.exception}"
 
     def test_table_with_array_types(self, dbt_project_dir: Path, dbt_runner, cleanup_schema):
         """Test table with ARRAY types."""

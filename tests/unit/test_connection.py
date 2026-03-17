@@ -451,3 +451,238 @@ class TestGetResponse:
         assert response.code == "SELECT"
         assert response.rows_affected == 1000
 
+
+class TestDataTypeCodeToName:
+    """Test HologresConnectionManager.data_type_code_to_name method."""
+
+    def test_known_type_codes(self):
+        """Test known type codes return expected format."""
+        # The current implementation returns a formatted string
+        result = HologresConnectionManager.data_type_code_to_name(123)
+        assert isinstance(result, str)
+        assert "123" in result
+
+    def test_unknown_type_code(self):
+        """Test unknown type code returns formatted string."""
+        result = HologresConnectionManager.data_type_code_to_name(9999)
+        assert isinstance(result, str)
+        assert "9999" in result
+
+    def test_negative_value(self):
+        """Test negative type code handling."""
+        # The method should handle negative values
+        result = HologresConnectionManager.data_type_code_to_name(-1)
+        assert isinstance(result, str)
+        assert "-1" in result
+
+    def test_zero_type_code(self):
+        """Test zero type code."""
+        result = HologresConnectionManager.data_type_code_to_name(0)
+        assert isinstance(result, str)
+        assert "0" in result
+
+    def test_large_type_code(self):
+        """Test large type code value."""
+        result = HologresConnectionManager.data_type_code_to_name(1000000)
+        assert isinstance(result, str)
+        assert "1000000" in result
+
+    def test_returns_string_type(self):
+        """Test return type is always string."""
+        for code in [0, 1, 100, -1, 9999]:
+            result = HologresConnectionManager.data_type_code_to_name(code)
+            assert isinstance(result, str)
+
+
+class TestGetResponseExtended:
+    """Extended tests for HologresConnectionManager.get_response method."""
+
+    def test_with_null_statusmessage(self):
+        """Test get_response handles NULL statusmessage."""
+        mock_cursor = mock.MagicMock()
+        mock_cursor.statusmessage = None
+        mock_cursor.rowcount = 0
+
+        response = HologresConnectionManager.get_response(mock_cursor)
+
+        assert response._message is None
+        assert response.code == ""
+        assert response.rows_affected == 0
+
+    def test_with_complex_status(self):
+        """Test get_response handles complex status messages."""
+        mock_cursor = mock.MagicMock()
+        mock_cursor.statusmessage = "CREATE TABLE"
+        mock_cursor.rowcount = 0
+
+        response = HologresConnectionManager.get_response(mock_cursor)
+
+        assert response._message == "CREATE TABLE"
+        assert response.code == "CREATE TABLE"
+
+    def test_rows_affected_large_number(self):
+        """Test get_response handles large rows_affected."""
+        mock_cursor = mock.MagicMock()
+        mock_cursor.statusmessage = "INSERT 0 1000000"
+        mock_cursor.rowcount = 1000000
+
+        response = HologresConnectionManager.get_response(mock_cursor)
+
+        assert response.rows_affected == 1000000
+
+    def test_status_message_with_numbers(self):
+        """Test get_response extracts status code correctly from message with numbers."""
+        mock_cursor = mock.MagicMock()
+        mock_cursor.statusmessage = "INSERT 0 500"
+        mock_cursor.rowcount = 500
+
+        response = HologresConnectionManager.get_response(mock_cursor)
+
+        # Code should be "INSERT" (numbers filtered out)
+        assert response.code == "INSERT"
+        assert response._message == "INSERT 0 500"
+
+    def test_empty_status_message(self):
+        """Test get_response handles empty status message."""
+        mock_cursor = mock.MagicMock()
+        mock_cursor.statusmessage = ""
+        mock_cursor.rowcount = 0
+
+        response = HologresConnectionManager.get_response(mock_cursor)
+
+        assert response._message == ""
+        assert response.code == ""
+
+    def test_copy_command_status(self):
+        """Test get_response handles COPY command status."""
+        mock_cursor = mock.MagicMock()
+        mock_cursor.statusmessage = "COPY 1000"
+        mock_cursor.rowcount = 1000
+
+        response = HologresConnectionManager.get_response(mock_cursor)
+
+        assert response.code == "COPY"
+        assert response.rows_affected == 1000
+
+    def test_multiple_word_command(self):
+        """Test get_response handles multi-word commands."""
+        mock_cursor = mock.MagicMock()
+        mock_cursor.statusmessage = "DROP TABLE"
+        mock_cursor.rowcount = 0
+
+        response = HologresConnectionManager.get_response(mock_cursor)
+
+        assert response.code == "DROP TABLE"
+
+    def test_negative_rowcount(self):
+        """Test get_response handles negative rowcount."""
+        mock_cursor = mock.MagicMock()
+        mock_cursor.statusmessage = "SELECT"
+        mock_cursor.rowcount = -1  # Some drivers return -1 for unknown
+
+        response = HologresConnectionManager.get_response(mock_cursor)
+
+        assert response.rows_affected == -1
+
+
+class TestHologresCredentialsEdgeCases:
+    """Edge case tests for HologresCredentials."""
+
+    def test_host_with_port_in_string(self):
+        """Test credentials with host containing port."""
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com:8080",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+        )
+
+        # Host should be preserved as-is
+        assert creds.host == "test.hologres.aliyuncs.com:8080"
+
+    def test_user_with_special_characters(self):
+        """Test credentials with special characters in user."""
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="BASIC$test_user@example.com",
+            password="test_password",
+            database="test_db",
+            schema="public",
+        )
+
+        assert creds.user == "BASIC$test_user@example.com"
+
+    def test_password_with_special_characters(self):
+        """Test credentials with special characters in password."""
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="p@ss!w0rd#$%",
+            database="test_db",
+            schema="public",
+        )
+
+        assert creds.password == "p@ss!w0rd#$%"
+
+    def test_database_with_hyphens(self):
+        """Test credentials with hyphens in database name."""
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="my-test-database",
+            schema="public",
+        )
+
+        assert creds.database == "my-test-database"
+
+    def test_schema_with_underscores(self):
+        """Test credentials with underscores in schema."""
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="my_schema_name",
+        )
+
+        assert creds.schema == "my_schema_name"
+
+    def test_connect_timeout_edge_values(self):
+        """Test connect_timeout with edge values."""
+        # Minimum value
+        creds_min = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+            connect_timeout=0,
+        )
+        assert creds_min.connect_timeout == 0
+
+        # Large value
+        creds_max = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+            connect_timeout=300,
+        )
+        assert creds_max.connect_timeout == 300
+
+    def test_application_name_with_spaces(self):
+        """Test application_name with spaces."""
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+            application_name="My App Name",
+        )
+
+        assert creds.application_name == "My App Name"
+

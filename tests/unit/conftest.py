@@ -131,3 +131,27 @@ def mock_relation_results():
     """Mock RelationResults for testing configuration changes."""
     results = mock.MagicMock()
     return results
+
+
+@pytest.fixture
+def mock_cache():
+    """Mock cache object for testing cache operations."""
+    cache = mock.MagicMock()
+    cache.add_link = mock.MagicMock()
+    return cache
+
+
+@pytest.fixture
+def sample_relation_dependencies():
+    """Sample relation dependency data for testing."""
+    return [
+        ("dep_schema", "dep_view", "ref_schema", "ref_table"),
+        ("schema1", "view1", "schema2", "table1"),
+    ]
+
+
+@pytest.fixture
+def mock_manifest():
+    """Mock manifest for catalog operations."""
+    manifest = mock.MagicMock()
+    return manifest

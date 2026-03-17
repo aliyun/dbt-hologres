@@ -15,7 +15,7 @@ hologres_example:
       host: hgxxx-xx-xxx-xx-xxx.hologres.aliyuncs.com
       port: 80
       user: BASIC$dbt_user
-      password: Leeyd#1988
+      password: your_password
       database: from_dbt
       schema: public
       threads: 4

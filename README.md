@@ -99,6 +99,30 @@ models:
     dictionary_encoding_columns: category
 ```
 
+### Supported Data Types
+
+The adapter supports standard PostgreSQL types plus Hologres-specific types:
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `roaringbitmap` | Compressed bitmap for efficient set operations | `rb_build(array[1,2,3])` |
+| `json` | JSON data type (text format) | `'{"key": "value"}'::json` |
+| `jsonb` | Binary JSON format with index support | `'{"key": "value"}'::jsonb` |
+| `integer[]` | Integer array type | `array[1, 2, 3]` |
+| `text[]` | Text array type | `array['a', 'b', 'c']` |
+
+**RoaringBitmap Example**:
+
+```sql
+{{ config(materialized='table') }}
+
+select
+    1 as id,
+    rb_build(array[1,2,3,4,5]) as user_ids  -- Creates a bitmap for user tagging
+```
+
+> **Note**: RoaringBitmap columns require `materialized='table'` for proper storage.
+
 ### Dynamic Tables
 
 Dynamic Tables are Hologres's implementation of materialized views with automatic refresh:

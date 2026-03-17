@@ -194,6 +194,88 @@ from {{ ref('simple_model') }}
 where id is not null
 """
 
+# View model fixtures
+models__basic_view = """
+{{ config(materialized='view') }}
+
+select
+    1 as id,
+    'test' as name,
+    current_timestamp as created_at
+"""
+
+# Model with sql_header for GUC settings
+models__with_sql_header = """
+{{ config(
+    materialized='table',
+    sql_header="SET TIME ZONE 'UTC';"
+) }}
+
+select
+    generate_series(1, 10) as id,
+    'test' as name,
+    current_timestamp as created_at
+"""
+
+# Incremental model with on_schema_change
+models__incremental_schema_change = """
+{{ config(
+    materialized='incremental',
+    incremental_strategy='append',
+    on_schema_change='append_new_columns'
+) }}
+
+select
+    i as id,
+    'name_' || i as name,
+    i * 100 as value
+from generate_series(1, 10) as s(i)
+"""
+
+# Table with event_time_column
+models__table_with_event_time = """
+{{ config(
+    materialized='table',
+    event_time_column='event_time'
+) }}
+
+select
+    current_timestamp - (i || ' days')::interval as event_time,
+    i as id,
+    'event_' || i as name
+from generate_series(1, 50) as s(i)
+"""
+
+# Table with bitmap columns
+models__table_with_bitmap_columns = """
+{{ config(
+    materialized='table',
+    bitmap_columns='user_id,status',
+    orientation='column'
+) }}
+
+select
+    i as id,
+    (i % 100) as user_id,
+    case (i % 3) when 0 then 'active' when 1 then 'pending' else 'inactive' end as status
+from generate_series(1, 100) as s(i)
+"""
+
+# Table with dictionary encoding columns
+models__table_with_dict_encoding = """
+{{ config(
+    materialized='table',
+    dictionary_encoding_columns='category,region',
+    orientation='column'
+) }}
+
+select
+    i as id,
+    case (i % 3) when 0 then 'A' when 1 then 'B' else 'C' end as category,
+    case (i % 4) when 0 then 'North' when 1 then 'South' when 2 then 'East' else 'West' end as region
+from generate_series(1, 50) as s(i)
+"""
+
 # =============================================================================
 # Seed Fixtures
 # =============================================================================
@@ -254,6 +336,12 @@ def get_model_fixtures() -> Dict[str, str]:
         "table_with_clustering_keys.sql": models__table_with_clustering_keys,
         "with_date_utils.sql": models__with_date_utils,
         "dependent_model.sql": models__dependent_model,
+        "basic_view.sql": models__basic_view,
+        "with_sql_header.sql": models__with_sql_header,
+        "incremental_schema_change.sql": models__incremental_schema_change,
+        "table_with_event_time.sql": models__table_with_event_time,
+        "table_with_bitmap_columns.sql": models__table_with_bitmap_columns,
+        "table_with_dict_encoding.sql": models__table_with_dict_encoding,
     }
 
 

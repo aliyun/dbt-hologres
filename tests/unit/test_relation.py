@@ -373,3 +373,335 @@ class TestDynamicTableConfigChanges:
         if result:
             # If there are changes, freshness shouldn't be one of them
             pass  # Just check that the test runs without error
+
+
+class TestGetDynamicTableConfigChangeCollectionExtended:
+    """Extended tests for get_dynamic_table_config_change_collection edge cases."""
+
+    def test_all_config_fields_change(self):
+        """Test detecting all config fields changing simultaneously."""
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        relation_results = mock.MagicMock()
+        relation_config = mock.MagicMock()
+        relation_config.config.extra = {
+            "freshness": "2 hours",
+            "auto_refresh_mode": "full",
+            "auto_refresh_enable": False,
+            "computing_resource": "warehouse",
+        }
+
+        result = relation.get_dynamic_table_config_change_collection(
+            relation_results, relation_config
+        )
+
+        assert result is not None
+        assert result.freshness == "2 hours"
+        assert result.auto_refresh_mode == "full"
+        assert result.auto_refresh_enable is False
+        assert result.computing_resource == "warehouse"
+        assert result.has_changes is True
+
+    def test_only_freshness_changes(self):
+        """Test detecting only freshness change."""
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        relation_results = mock.MagicMock()
+        relation_config = mock.MagicMock()
+        relation_config.config.extra = {
+            "freshness": "2 hours",
+            # Other fields use default values from from_relation_results
+        }
+
+        result = relation.get_dynamic_table_config_change_collection(
+            relation_results, relation_config
+        )
+
+        assert result is not None
+        assert result.freshness == "2 hours"
+        # Only freshness should have changed
+        assert result.auto_refresh_mode is None
+        assert result.auto_refresh_enable is None
+
+    def test_only_auto_refresh_mode_changes(self):
+        """Test detecting only auto_refresh_mode change."""
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        relation_results = mock.MagicMock()
+        relation_config = mock.MagicMock()
+        # freshness matches default "1 hours"
+        relation_config.config.extra = {
+            "freshness": "1 hours",
+            "auto_refresh_mode": "incremental",  # Different from default "auto"
+        }
+
+        result = relation.get_dynamic_table_config_change_collection(
+            relation_results, relation_config
+        )
+
+        assert result is not None
+        assert result.auto_refresh_mode == "incremental"
+
+    def test_no_changes_returns_none(self):
+        """Test that no changes returns None (via has_changes = False)."""
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        relation_results = mock.MagicMock()
+        relation_config = mock.MagicMock()
+        # All values match defaults from from_relation_results
+        relation_config.config.extra = {
+            "freshness": "1 hours",  # Same as default
+            "auto_refresh_mode": "auto",  # Same as default
+            "auto_refresh_enable": True,  # Same as default
+            "computing_resource": "serverless",  # Same as default
+        }
+
+        result = relation.get_dynamic_table_config_change_collection(
+            relation_results, relation_config
+        )
+
+        # No changes should return None
+        assert result is None
+
+    def test_config_with_none_values(self):
+        """Test handling None values in config."""
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        relation_results = mock.MagicMock()
+        relation_config = mock.MagicMock()
+        # Some values are None (not set)
+        relation_config.config.extra = {
+            "freshness": "30 minutes",
+            "auto_refresh_mode": None,  # None value
+            "auto_refresh_enable": True,
+            "computing_resource": None,  # None value
+        }
+
+        result = relation.get_dynamic_table_config_change_collection(
+            relation_results, relation_config
+        )
+
+        # Should still detect changes for non-None values
+        assert result is not None
+        assert result.freshness == "30 minutes"
+
+    def test_auto_refresh_enable_toggle(self):
+        """Test detecting auto_refresh_enable toggle from True to False."""
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        relation_results = mock.MagicMock()
+        relation_config = mock.MagicMock()
+        relation_config.config.extra = {
+            "freshness": "1 hours",  # Same as default
+            "auto_refresh_enable": False,  # Different from default True
+        }
+
+        result = relation.get_dynamic_table_config_change_collection(
+            relation_results, relation_config
+        )
+
+        assert result is not None
+        assert result.auto_refresh_enable is False
+
+    def test_computing_resource_changes(self):
+        """Test detecting computing_resource changes."""
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        relation_results = mock.MagicMock()
+        relation_config = mock.MagicMock()
+        relation_config.config.extra = {
+            "freshness": "1 hours",  # Same as default
+            "computing_resource": "local",  # Different from default "serverless"
+        }
+
+        result = relation.get_dynamic_table_config_change_collection(
+            relation_results, relation_config
+        )
+
+        assert result is not None
+        assert result.computing_resource == "local"
+
+
+class TestGetIndexConfigChangesExtended:
+    """Extended tests for _get_index_config_changes edge cases."""
+
+    def test_index_type_change(self):
+        """Test index type changes are detected."""
+        from dbt.adapters.hologres.relation_configs import HologresIndexConfig
+        from dbt.adapters.relation_configs import RelationConfigChangeAction
+
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        # Same columns but different type
+        existing = frozenset([
+            HologresIndexConfig(columns=["col1"], type="btree"),
+        ])
+        new = frozenset([
+            HologresIndexConfig(columns=["col1"], type="bitmap"),
+        ])
+
+        changes = relation._get_index_config_changes(existing, new)
+
+        # Should have 2 changes: drop old, create new
+        assert len(changes) == 2
+        actions = [c.action for c in changes]
+        assert RelationConfigChangeAction.drop in actions
+        assert RelationConfigChangeAction.create in actions
+
+    def test_complex_index_set_operations(self):
+        """Test complex index set with multiple operations."""
+        from dbt.adapters.hologres.relation_configs import HologresIndexConfig
+        from dbt.adapters.relation_configs import RelationConfigChangeAction
+
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        existing = frozenset([
+            HologresIndexConfig(columns=["old_col"]),
+            HologresIndexConfig(columns=["keep_col"]),
+        ])
+        new = frozenset([
+            HologresIndexConfig(columns=["keep_col"]),  # Keep this one
+            HologresIndexConfig(columns=["new_col"]),   # Add this one
+        ])
+
+        changes = relation._get_index_config_changes(existing, new)
+
+        # Should have 2 changes: drop old_col, create new_col
+        assert len(changes) == 2
+        actions = [c.action for c in changes]
+        assert RelationConfigChangeAction.drop in actions
+        assert RelationConfigChangeAction.create in actions
+
+    def test_index_order_preserved(self):
+        """Test that drop operations come before create operations."""
+        from dbt.adapters.hologres.relation_configs import HologresIndexConfig
+        from dbt.adapters.relation_configs import RelationConfigChangeAction
+
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        existing = frozenset([
+            HologresIndexConfig(columns=["old"]),
+        ])
+        new = frozenset([
+            HologresIndexConfig(columns=["new"]),
+        ])
+
+        changes = relation._get_index_config_changes(existing, new)
+
+        # Verify order: drop should come first
+        assert len(changes) == 2
+        assert changes[0].action == RelationConfigChangeAction.drop
+        assert changes[1].action == RelationConfigChangeAction.create
+
+    def test_unique_flag_change(self):
+        """Test unique flag changes are detected."""
+        from dbt.adapters.hologres.relation_configs import HologresIndexConfig
+        from dbt.adapters.relation_configs import RelationConfigChangeAction
+
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        # Same columns but different unique flag
+        existing = frozenset([
+            HologresIndexConfig(columns=["col1"], unique=False),
+        ])
+        new = frozenset([
+            HologresIndexConfig(columns=["col1"], unique=True),
+        ])
+
+        changes = relation._get_index_config_changes(existing, new)
+
+        # Should have 2 changes: drop old, create new
+        assert len(changes) == 2
+
+    def test_multiple_column_index_change(self):
+        """Test multi-column index changes."""
+        from dbt.adapters.hologres.relation_configs import HologresIndexConfig
+        from dbt.adapters.relation_configs import RelationConfigChangeAction
+
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        existing = frozenset([
+            HologresIndexConfig(columns=["col1", "col2"]),
+        ])
+        new = frozenset([
+            HologresIndexConfig(columns=["col1", "col3"]),  # Changed second column
+        ])
+
+        changes = relation._get_index_config_changes(existing, new)
+
+        # Different multi-column index = drop + create
+        assert len(changes) == 2
+
+    def test_index_with_all_attributes(self):
+        """Test index with all attributes specified."""
+        from dbt.adapters.hologres.relation_configs import HologresIndexConfig
+
+        relation = HologresRelation.create(
+            database="test_db",
+            schema="test_schema",
+            identifier="test_table",
+        )
+
+        existing = frozenset()
+        new = frozenset([
+            HologresIndexConfig(
+                columns=["col1", "col2"],
+                unique=True,
+                type="bitmap"
+            ),
+        ])
+
+        changes = relation._get_index_config_changes(existing, new)
+
+        assert len(changes) == 1
+        assert changes[0].context.columns == ["col1", "col2"]
+        assert changes[0].context.unique is True
+        assert changes[0].context.type == "bitmap"
