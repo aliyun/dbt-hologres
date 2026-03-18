@@ -582,6 +582,68 @@ python -m pytest tests/functional/ -v
 | test_logical_partition.py | 9 | Logical partition with single/multiple keys |
 | test_date_utils.py | 10 | LocalDate operations and date macros |
 
+## Building and Publishing
+
+### Build
+
+This project uses [Hatchling](https://hatch.pypa.io/) as the build backend.
+
+```bash
+# Install hatch (if not already installed)
+pip install hatch
+
+# Build wheel and sdist (output to dist/)
+hatch build
+
+# Build wheel only
+hatch build -t wheel
+```
+
+### Verify
+
+Validate the built package before publishing:
+
+```bash
+hatch run build:check-all
+```
+
+This runs `twine check` and installation verification to ensure package quality.
+
+### Publish to PyPI
+
+```bash
+# Install twine (if not already installed)
+pip install twine
+
+# Upload to PyPI
+twine upload dist/*
+```
+
+You need to configure PyPI credentials beforehand, either via `~/.pypirc` or environment variables:
+
+```bash
+export TWINE_USERNAME=__token__
+export TWINE_PASSWORD=your-pypi-api-token
+```
+
+### Version Management
+
+The version number is maintained in a single file:
+
+```
+src/dbt/adapters/hologres/__version__.py
+```
+
+Hatchling reads the version automatically from this file during build — no need to update it elsewhere.
+
+### Release Checklist
+
+1. Update version in `src/dbt/adapters/hologres/__version__.py`
+2. Build: `hatch build`
+3. Verify: `hatch run build:check-all`
+4. Publish: `twine upload dist/*`
+5. Tag: `git tag v<version> && git push origin v<version>`
+
 ## Resources
 
 - [dbt Documentation](https://docs.getdbt.com)
