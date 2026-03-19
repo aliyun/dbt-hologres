@@ -40,6 +40,32 @@ class TestLocalDateCreation:
         assert ld.year == 2024
         assert ld.month == 1
         assert ld.day == 15
+
+    def test_from_datetime_string_with_timezone(self):
+        """Test parsing ISO 8601 datetime string with timezone."""
+        # Test with UTC timezone (+00:00)
+        ld = LocalDate("2026-03-17T09:02:12+00:00")
+        assert ld.year == 2026
+        assert ld.month == 3
+        assert ld.day == 17
+
+        # Test with positive timezone offset
+        ld2 = LocalDate("2024-01-15T23:30:00+08:00")
+        assert ld2.year == 2024
+        assert ld2.month == 1
+        assert ld2.day == 15
+
+        # Test with negative timezone offset
+        ld3 = LocalDate("2024-01-15T01:30:00-05:00")
+        assert ld3.year == 2024
+        assert ld3.month == 1
+        assert ld3.day == 15
+
+        # Test with Z (Zulu time, equivalent to +00:00)
+        ld4 = LocalDate("2024-12-31T23:59:59Z")
+        assert ld4.year == 2024
+        assert ld4.month == 12
+        assert ld4.day == 31
     
     def test_from_date_object(self):
         """Test creating from date object."""
@@ -299,6 +325,51 @@ class TestLocalDateProperties:
         assert LocalDate("2024-04-15").quarter == 2
         assert LocalDate("2024-07-15").quarter == 3
         assert LocalDate("2024-10-15").quarter == 4
+
+    def test_dual_access_year(self):
+        """Test year property can be accessed as both attribute and method."""
+        ld = LocalDate("2024-06-15")
+        assert ld.year == 2024  # Attribute access
+        assert ld.year() == 2024  # Method call
+
+    def test_dual_access_month(self):
+        """Test month property can be accessed as both attribute and method."""
+        ld = LocalDate("2024-06-15")
+        assert ld.month == 6  # Attribute access
+        assert ld.month() == 6  # Method call
+
+    def test_dual_access_day(self):
+        """Test day property can be accessed as both attribute and method."""
+        ld = LocalDate("2024-06-15")
+        assert ld.day == 15  # Attribute access
+        assert ld.day() == 15  # Method call
+
+    def test_dual_access_quarter(self):
+        """Test quarter property can be accessed as both attribute and method."""
+        ld = LocalDate("2024-04-15")
+        assert ld.quarter == 2  # Attribute access
+        assert ld.quarter() == 2  # Method call
+
+    def test_dual_access_day_of_week(self):
+        """Test day_of_week property can be accessed as both attribute and method."""
+        ld = LocalDate("2024-03-18")  # Monday
+        assert ld.day_of_week == 0  # Attribute access
+        assert ld.day_of_week() == 0  # Method call
+
+    def test_dual_access_day_of_year(self):
+        """Test day_of_year property can be accessed as both attribute and method."""
+        ld = LocalDate("2024-03-15")
+        # March 15 is the 75th day of 2024 (leap year)
+        expected_day = 75
+        assert ld.day_of_year == expected_day  # Attribute access
+        assert ld.day_of_year() == expected_day  # Method call
+
+    def test_property_in_arithmetic(self):
+        """Test that properties work in arithmetic expressions."""
+        ld = LocalDate("2024-06-15")
+        assert ld.year + 1 == 2025
+        assert ld.month * 2 == 12
+        assert ld.day - 5 == 10
 
 
 class TestLocalDateFormatting:
