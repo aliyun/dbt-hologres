@@ -1,6 +1,6 @@
-# Maximum characters in a Hologres identifier (same as PostgreSQL)
-MAX_CHARACTERS_IN_IDENTIFIER = 90 
-
+from dbt.adapters.hologres.relation_configs.constants import (  # noqa: F401
+    MAX_CHARACTERS_IN_IDENTIFIER,
+)
 from dbt.adapters.hologres.relation_configs.index import (  # noqa: F401
     HologresIndexConfig,
     HologresIndexConfigChange,
