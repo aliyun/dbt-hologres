@@ -14,6 +14,49 @@ from typing import Union
 import calendar
 
 
+class DualAccessor:
+    """
+    Descriptor that allows a property to be accessed both as an attribute and as a method.
+
+    Example:
+        obj.year      # Returns the year (int)
+        obj.year()    # Also returns the year (int)
+    """
+    def __init__(self, getter):
+        self.getter = getter
+        self.__name__ = getter.__name__
+        self.__doc__ = getter.__doc__
+
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self
+
+        # Get the value
+        value = self.getter(obj)
+
+        # Create a callable that returns the value
+        def callable_method():
+            return value
+
+        # Copy docstring and make it look like a method
+        callable_method.__doc__ = self.__doc__
+        callable_method.__name__ = self.__name__
+
+        # Return the callable (which when called returns value, but itself represents the value)
+        # For int values, we need to make the callable behave like an int
+        class CallableValue(int):
+            """An int subclass that is also callable."""
+            def __new__(cls, val, original_callable):
+                obj = int.__new__(cls, val)
+                obj._original_callable = original_callable
+                return obj
+
+            def __call__(self):
+                return int(self)
+
+        return CallableValue(value, callable_method)
+
+
 class LocalDate:
     """
     A date class supporting chainable operations for Jinja2 templates.
@@ -42,144 +85,159 @@ class LocalDate:
     
     @staticmethod
     def _parse_date_string(date_str: str) -> date:
-        """Parse date string in various formats."""
+        """
+        Parse date string in various formats.
+
+        Supports:
+        - ISO 8601 with timezone (e.g., 2024-01-15T10:30:00+08:00, 2024-12-31T23:59:59Z)
+        - ISO 8601 without timezone (e.g., 2024-01-15T10:30:00)
+        - Standard date formats (e.g., 2024-01-15, 2024/01/15, 20240115)
+        - Datetime formats (e.g., 2024-01-15 10:30:00)
+        """
         date_str = date_str.strip()
-        
-        # Try common date formats
+
+        # Try ISO 8601 format first (handles timezone-aware strings)
+        # Replace 'Z' suffix with '+00:00' for Python 3.7+ fromisoformat compatibility
+        try:
+            return datetime.fromisoformat(date_str.replace('Z', '+00:00')).date()
+        except (ValueError, AttributeError):
+            pass
+
+        # Try common date/datetime formats
         formats = [
             "%Y-%m-%d",           # 2024-01-15
             "%Y/%m/%d",           # 2024/01/15
             "%Y%m%d",             # 20240115
-            "%Y-%m-%dT%H:%M:%S",  # ISO format with time
+            "%Y-%m-%dT%H:%M:%S",  # ISO format with time (no timezone)
             "%Y-%m-%d %H:%M:%S",  # datetime format
         ]
-        
+
         for fmt in formats:
             try:
                 return datetime.strptime(date_str, fmt).date()
             except ValueError:
                 continue
-        
+
         raise ValueError(f"Cannot parse date string: {date_str}")
     
     # ========== Subtraction Methods ==========
     
-    def sub_days(self, days: int) -> "LocalDate":
+    def sub_days(self, days: int = 1) -> "LocalDate":
         """
         Subtract days from this date.
-        
+
         Args:
-            days: Number of days to subtract
-            
+            days: Number of days to subtract (default: 1)
+
         Returns:
             New LocalDate instance
         """
         new_date = self._date - timedelta(days=days)
         return LocalDate(new_date)
     
-    def sub_months(self, months: int) -> "LocalDate":
+    def sub_months(self, months: int = 1) -> "LocalDate":
         """
         Subtract months from this date.
-        
+
         Args:
-            months: Number of months to subtract
-            
+            months: Number of months to subtract (default: 1)
+
         Returns:
             New LocalDate instance
         """
         year = self._date.year
         month = self._date.month - months
         day = self._date.day
-        
+
         # Handle year rollover
         while month <= 0:
             month += 12
             year -= 1
-        
+
         # Handle day overflow (e.g., Jan 31 - 1 month = Dec 31, not Dec 28)
         max_day = calendar.monthrange(year, month)[1]
         day = min(day, max_day)
-        
+
         return LocalDate(date(year, month, day))
     
-    def sub_years(self, years: int) -> "LocalDate":
+    def sub_years(self, years: int = 1) -> "LocalDate":
         """
         Subtract years from this date.
-        
+
         Args:
-            years: Number of years to subtract
-            
+            years: Number of years to subtract (default: 1)
+
         Returns:
             New LocalDate instance
         """
         year = self._date.year - years
         month = self._date.month
         day = self._date.day
-        
+
         # Handle leap year (Feb 29 -> Feb 28)
         max_day = calendar.monthrange(year, month)[1]
         day = min(day, max_day)
-        
+
         return LocalDate(date(year, month, day))
     
     # ========== Addition Methods ==========
     
-    def add_days(self, days: int) -> "LocalDate":
+    def add_days(self, days: int = 1) -> "LocalDate":
         """
         Add days to this date.
-        
+
         Args:
-            days: Number of days to add
-            
+            days: Number of days to add (default: 1)
+
         Returns:
             New LocalDate instance
         """
         new_date = self._date + timedelta(days=days)
         return LocalDate(new_date)
     
-    def add_months(self, months: int) -> "LocalDate":
+    def add_months(self, months: int = 1) -> "LocalDate":
         """
         Add months to this date.
-        
+
         Args:
-            months: Number of months to add
-            
+            months: Number of months to add (default: 1)
+
         Returns:
             New LocalDate instance
         """
         year = self._date.year
         month = self._date.month + months
         day = self._date.day
-        
+
         # Handle year rollover
         while month > 12:
             month -= 12
             year += 1
-        
+
         # Handle day overflow
         max_day = calendar.monthrange(year, month)[1]
         day = min(day, max_day)
-        
+
         return LocalDate(date(year, month, day))
     
-    def add_years(self, years: int) -> "LocalDate":
+    def add_years(self, years: int = 1) -> "LocalDate":
         """
         Add years to this date.
-        
+
         Args:
-            years: Number of years to add
-            
+            years: Number of years to add (default: 1)
+
         Returns:
             New LocalDate instance
         """
         year = self._date.year + years
         month = self._date.month
         day = self._date.day
-        
+
         # Handle leap year
         max_day = calendar.monthrange(year, month)[1]
         day = min(day, max_day)
-        
+
         return LocalDate(date(year, month, day))
     
     # ========== Start/End of Period Methods ==========
@@ -273,33 +331,33 @@ class LocalDate:
         return self.start_of_week(start_day).add_days(6)
     
     # ========== Property Accessors ==========
-    
-    @property
+
+    @DualAccessor
     def year(self) -> int:
         """Get the year component."""
         return self._date.year
-    
-    @property
+
+    @DualAccessor
     def month(self) -> int:
         """Get the month component (1-12)."""
         return self._date.month
-    
-    @property
+
+    @DualAccessor
     def day(self) -> int:
         """Get the day component (1-31)."""
         return self._date.day
-    
-    @property
+
+    @DualAccessor
     def quarter(self) -> int:
         """Get the quarter (1-4)."""
         return (self._date.month - 1) // 3 + 1
-    
-    @property
+
+    @DualAccessor
     def day_of_week(self) -> int:
         """Get the day of week (0=Monday, 6=Sunday)."""
         return self._date.weekday()
-    
-    @property
+
+    @DualAccessor
     def day_of_year(self) -> int:
         """Get the day of year (1-366)."""
         return self._date.timetuple().tm_yday
@@ -317,6 +375,15 @@ class LocalDate:
             Formatted date string
         """
         return self._date.strftime(fmt)
+    
+    def to_date_string(self) -> str:
+        """
+        Get the date as a string in YYYY-MM-DD format.
+        
+        Returns:
+            Date string in YYYY-MM-DD format
+        """
+        return self.format("%Y-%m-%d")
     
     def to_date(self) -> date:
         """
