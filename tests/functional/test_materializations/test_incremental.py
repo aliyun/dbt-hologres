@@ -325,3 +325,234 @@ where event_date > (select max(event_date) from {{ this }})
         results = run_dbt(["run"])
         assert len(results) == 1
         assert results[0].status == "success"
+
+
+class TestIncrementalMicrobatch:
+    """Tests for incremental materialization with microbatch strategy.
+
+    Microbatch is a dbt-core strategy designed for processing large datasets
+    in smaller batches based on an event_time column. It provides:
+    - Batch-based processing for better performance
+    - Automatic retry on failure for specific batches
+    - Progress tracking during incremental runs
+
+    Note: This test verifies that the microbatch strategy is recognized
+    and works correctly with Hologres.
+    """
+
+    @pytest.fixture(scope="class")
+    def models(self):
+        """Define incremental model with microbatch strategy."""
+        return {
+            "microbatch_model.sql": """
+{{ config(
+    materialized='incremental',
+    incremental_strategy='microbatch',
+    unique_key='id',
+    event_time='created_at'
+) }}
+
+select
+    i as id,
+    'event_' || i as event_name,
+    current_timestamp - (i || ' hours')::interval as created_at
+from generate_series(1, 100) as s(i)
+
+{% if is_incremental() %}
+where created_at > (select max(created_at) from {{ this }})
+{% endif %}
+""",
+        }
+
+    def test_microbatch_first_run(self, project):
+        """Test first run with microbatch strategy creates table."""
+        results = run_dbt(["run"])
+        assert len(results) == 1
+        assert results[0].status == "success"
+
+    def test_microbatch_subsequent_runs(self, project):
+        """Test that microbatch strategy works on subsequent runs."""
+        run_dbt(["run"])
+        results = run_dbt(["run"])
+        assert len(results) == 1
+        assert results[0].status == "success"
+
+
+class TestIncrementalMicrobatchWithBatchSize:
+    """Tests for microbatch with custom batch size configuration."""
+
+    @pytest.fixture(scope="class")
+    def models(self):
+        """Define microbatch model with custom batch size."""
+        return {
+            "batch_microbatch.sql": """
+{{ config(
+    materialized='incremental',
+    incremental_strategy='microbatch',
+    unique_key='id',
+    event_time='event_time',
+    batch_size=1000
+) }}
+
+select
+    i as id,
+    current_timestamp - (i || ' seconds')::interval as event_time,
+    'data_' || i as data
+from generate_series(1, 5000) as s(i)
+
+{% if is_incremental() %}
+where event_time > (select max(event_time) from {{ this }})
+{% endif %}
+""",
+        }
+
+    def test_microbatch_with_batch_size(self, project):
+        """Test microbatch with custom batch size configuration."""
+        results = run_dbt(["run"])
+        assert len(results) == 1
+        assert results[0].status == "success"
+
+    def test_microbatch_with_batch_size_incremental(self, project):
+        """Test microbatch incremental run with batch size."""
+        run_dbt(["run"])
+        results = run_dbt(["run"])
+        assert len(results) == 1
+        assert results[0].status == "success"
+
+
+class TestIncrementalMicrobatchWithLookback:
+    """Tests for microbatch with lookback configuration."""
+
+    @pytest.fixture(scope="class")
+    def models(self):
+        """Define microbatch model with lookback period."""
+        return {
+            "lookback_microbatch.sql": """
+{{ config(
+    materialized='incremental',
+    incremental_strategy='microbatch',
+    unique_key='id',
+    event_time='event_time',
+    lookback=7
+) }}
+
+select
+    i as id,
+    current_date - (i || ' days')::interval as event_time,
+    'record_' || i as record_name
+from generate_series(0, 30) as s(i)
+
+{% if is_incremental() %}
+where event_time > (select max(event_time) from {{ this }}) - interval '7 days'
+{% endif %}
+""",
+        }
+
+    def test_microbatch_with_lookback(self, project):
+        """Test microbatch with lookback period configuration."""
+        results = run_dbt(["run"])
+        assert len(results) == 1
+        assert results[0].status == "success"
+
+
+class TestIncrementalMicrobatchWithBegin:
+    """Tests for microbatch with begin timestamp."""
+
+    @pytest.fixture(scope="class")
+    def models(self):
+        """Define microbatch model with begin timestamp."""
+        return {
+            "begin_microbatch.sql": """
+{{ config(
+    materialized='incremental',
+    incremental_strategy='microbatch',
+    unique_key='id',
+    event_time='created_at',
+    begin='2024-01-01'
+) }}
+
+select
+    i as id,
+    '2024-01-01'::date + (i || ' days')::interval as created_at,
+    'entry_' || i as entry_name
+from generate_series(0, 100) as s(i)
+
+{% if is_incremental() %}
+where created_at > (select max(created_at) from {{ this }})
+{% endif %}
+""",
+        }
+
+    def test_microbatch_with_begin(self, project):
+        """Test microbatch with begin timestamp configuration."""
+        results = run_dbt(["run"])
+        assert len(results) == 1
+        assert results[0].status == "success"
+
+
+class TestIncrementalAllStrategies:
+    """Tests comparing all incremental strategies for consistency."""
+
+    @pytest.fixture(scope="class")
+    def models(self):
+        """Define models using different incremental strategies."""
+        return {
+            "append_model.sql": """
+{{ config(
+    materialized='incremental',
+    incremental_strategy='append'
+) }}
+
+select i as id, 'append_' || i as strategy
+from generate_series(1, 5) as s(i)
+""",
+            "delete_insert_model.sql": """
+{{ config(
+    materialized='incremental',
+    incremental_strategy='delete+insert',
+    unique_key='id'
+) }}
+
+select i as id, 'delete_insert_' || i as strategy
+from generate_series(1, 5) as s(i)
+""",
+            "merge_model.sql": """
+{{ config(
+    materialized='incremental',
+    incremental_strategy='merge',
+    unique_key='id'
+) }}
+
+select i as id, 'merge_' || i as strategy
+from generate_series(1, 5) as s(i)
+""",
+            "microbatch_model.sql": """
+{{ config(
+    materialized='incremental',
+    incremental_strategy='microbatch',
+    unique_key='id',
+    event_time='event_time'
+) }}
+
+select
+    i as id,
+    'microbatch_' || i as strategy,
+    current_timestamp as event_time
+from generate_series(1, 5) as s(i)
+""",
+        }
+
+    def test_all_strategies_first_run(self, project):
+        """Test that all incremental strategies work on first run."""
+        results = run_dbt(["run"])
+        assert len(results) == 4
+        for result in results:
+            assert result.status == "success"
+
+    def test_all_strategies_subsequent_run(self, project):
+        """Test that all strategies work on subsequent runs."""
+        run_dbt(["run"])
+        results = run_dbt(["run"])
+        assert len(results) == 4
+        for result in results:
+            assert result.status == "success"
