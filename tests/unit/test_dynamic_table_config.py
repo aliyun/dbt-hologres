@@ -333,6 +333,36 @@ class TestHologresDynamicTableConfigDefaultValues:
         assert config.computing_resource == "serverless"
         assert config.storage_mode == "hot"
 
+    def test_from_dict_all_optional_fields_individually(self):
+        """Test from_dict with each optional field individually to ensure coverage."""
+        # Test each optional field one by one
+        optional_fields = [
+            ("auto_refresh_enable", False),
+            ("auto_refresh_mode", "incremental"),
+            ("computing_resource", "local"),
+            ("base_table_cdc_format", "binlog"),
+            ("partition_key", "ds"),
+            ("partition_type", "logical"),
+            ("partition_key_time_format", "yyyyMMdd"),
+            ("auto_refresh_partition_active_time", "7 days"),
+            ("orientation", "row"),
+            ("distribution_key", ["user_id"]),
+            ("clustering_key", ["created_at"]),
+            ("event_time_column", ["timestamp"]),
+            ("bitmap_columns", ["status"]),
+            ("dictionary_encoding_columns", ["name"]),
+            ("time_to_live_in_seconds", 86400),
+            ("storage_mode", "cold"),
+        ]
+
+        for field_name, field_value in optional_fields:
+            config_dict = {
+                "freshness": "1 hours",
+                field_name: field_value,
+            }
+            config = HologresDynamicTableConfig.from_dict(config_dict)
+            assert getattr(config, field_name) == field_value, f"Field {field_name} not set correctly"
+
 
 class TestHologresDynamicTableConfigPartitionFields:
     """Test partition-related fields in HologresDynamicTableConfig."""

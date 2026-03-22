@@ -129,6 +129,21 @@ class TestHologresIndexConfig:
         with pytest.raises(IndexConfigError):
             HologresIndexConfig.parse(raw_index)
 
+    def test_parse_type_error_raises_index_config_not_dict_error(self):
+        """Test parse raises IndexConfigNotDictError when TypeError occurs."""
+        # Create a mock that will cause TypeError in from_dict
+        # We need to bypass validate and cause TypeError in from_dict
+        from unittest import mock
+
+        # Mock validate to pass, then from_dict to raise TypeError
+        with mock.patch.object(HologresIndexConfig, 'validate'):
+            with mock.patch.object(
+                HologresIndexConfig, 'from_dict',
+                side_effect=TypeError("not a dict")
+            ):
+                with pytest.raises(IndexConfigNotDictError):
+                    HologresIndexConfig.parse("not a dict")
+
     def test_from_dict(self):
         """Test from_dict creates index config."""
         config_dict = {

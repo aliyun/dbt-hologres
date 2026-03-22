@@ -860,3 +860,37 @@ class TestLocalDateInvalidType:
         """Test tuple input raises ValueError."""
         with pytest.raises(ValueError):
             LocalDate((2024, 1, 15))
+
+
+class TestLocalDateEqualityWithNonLocalDate:
+    """Test __eq__ returns False when comparing with non-LocalDate objects."""
+
+    def test_eq_with_string(self):
+        """Test __eq__ returns False when comparing with string."""
+        ld = LocalDate("2024-01-15")
+        assert (ld == "2024-01-15") is False
+
+    def test_eq_with_python_date(self):
+        """Test __eq__ returns False when comparing with Python date."""
+        ld = LocalDate("2024-01-15")
+        assert (ld == date(2024, 1, 15)) is False
+
+    def test_eq_with_int(self):
+        """Test __eq__ returns False when comparing with integer."""
+        ld = LocalDate("2024-01-15")
+        assert (ld == 20240115) is False
+
+    def test_eq_with_none(self):
+        """Test __eq__ returns False when comparing with None."""
+        ld = LocalDate("2024-01-15")
+        assert (ld == None) is False
+
+    def test_eq_with_dict(self):
+        """Test __eq__ returns False when comparing with dict."""
+        ld = LocalDate("2024-01-15")
+        assert (ld == {"year": 2024, "month": 1, "day": 15}) is False
+
+    def test_eq_with_list(self):
+        """Test __eq__ returns False when comparing with list."""
+        ld = LocalDate("2024-01-15")
+        assert (ld == [2024, 1, 15]) is False
