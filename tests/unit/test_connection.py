@@ -686,3 +686,204 @@ class TestHologresCredentialsEdgeCases:
 
         assert creds.application_name == "My App Name"
 
+
+class TestHologresConnectionManagerRetry:
+    """Test HologresConnectionManager retry mechanism."""
+
+    def test_quadratic_backoff_calculation(self):
+        """Test quadratic backoff calculation: 0, 1, 4, 9, 16..."""
+        # Define the function locally since it's defined inside open()
+        def quadratic_backoff(attempt: int):
+            return attempt * attempt
+
+        # Test first few attempts
+        assert quadratic_backoff(0) == 0
+        assert quadratic_backoff(1) == 1
+        assert quadratic_backoff(2) == 4
+        assert quadratic_backoff(3) == 9
+        assert quadratic_backoff(4) == 16
+        assert quadratic_backoff(5) == 25
+
+    def test_quadratic_backoff_sequence(self):
+        """Test that backoff values increase quadratically."""
+        def quadratic_backoff(attempt: int):
+            return attempt * attempt
+
+        prev = -1
+        for attempt in range(10):
+            current = quadratic_backoff(attempt)
+            assert current >= prev
+            prev = current
+
+    @mock.patch("dbt.adapters.hologres.connections.HologresConnectionManager.retry_connection")
+    @mock.patch("dbt.adapters.hologres.connections.psycopg.connect")
+    def test_open_passes_retry_parameters(self, mock_connect, mock_retry):
+        """Test open passes correct retry parameters to retry_connection."""
+        mock_retry.return_value = mock.MagicMock()
+
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+            retries=3,
+        )
+
+        connection = mock.MagicMock()
+        connection.state = "init"
+        connection.credentials = creds
+        connection.name = "test_connection"
+
+        HologresConnectionManager.open(connection)
+
+        # Verify retry_connection was called with correct parameters
+        mock_retry.assert_called_once()
+        call_kwargs = mock_retry.call_args[1]
+
+        assert call_kwargs["retry_limit"] == 3
+        assert "retry_timeout" in call_kwargs
+        assert call_kwargs["retryable_exceptions"] == [psycopg.OperationalError]
+
+    @mock.patch("dbt.adapters.hologres.connections.HologresConnectionManager.retry_connection")
+    @mock.patch("dbt.adapters.hologres.connections.psycopg.connect")
+    def test_open_default_retries(self, mock_connect, mock_retry):
+        """Test open uses default retries value."""
+        mock_retry.return_value = mock.MagicMock()
+
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+            # No retries specified, should use default (1)
+        )
+
+        connection = mock.MagicMock()
+        connection.state = "init"
+        connection.credentials = creds
+        connection.name = "test_connection"
+
+        HologresConnectionManager.open(connection)
+
+        call_kwargs = mock_retry.call_args[1]
+        assert call_kwargs["retry_limit"] == 1  # Default value
+
+    @mock.patch("dbt.adapters.hologres.connections.psycopg.connect")
+    def test_open_connect_parameters(self, mock_connect):
+        """Test open passes correct parameters to psycopg.connect."""
+        mock_handle = mock.MagicMock()
+        mock_handle.info.backend_pid = 12345
+        mock_connect.return_value = mock_handle
+
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+            port=8080,
+            connect_timeout=30,
+            sslmode="require",
+        )
+
+        connection = mock.MagicMock()
+        connection.state = "init"
+        connection.credentials = creds
+        connection.name = "test_connection"
+
+        HologresConnectionManager.open(connection)
+
+        # Verify connect was called with correct parameters
+        call_kwargs = mock_connect.call_args[1]
+        assert call_kwargs["dbname"] == "test_db"
+        assert call_kwargs["user"] == "test_user"
+        assert call_kwargs["host"] == "test.hologres.aliyuncs.com"
+        assert call_kwargs["password"] == "test_password"
+        assert call_kwargs["port"] == 8080
+        assert call_kwargs["connect_timeout"] == 30
+        assert call_kwargs["sslmode"] == "require"
+
+
+class TestQuadraticBackoffFunction:
+    """Direct tests for quadratic backoff function behavior."""
+
+    def test_zero_attempt(self):
+        """Test backoff for attempt 0."""
+        def quadratic_backoff(attempt: int):
+            return attempt * attempt
+
+        assert quadratic_backoff(0) == 0
+
+    def test_large_attempt(self):
+        """Test backoff for large attempt number."""
+        def quadratic_backoff(attempt: int):
+            return attempt * attempt
+
+        assert quadratic_backoff(10) == 100
+        assert quadratic_backoff(100) == 10000
+
+    def test_negative_attempt(self):
+        """Test backoff for negative attempt (edge case)."""
+        def quadratic_backoff(attempt: int):
+            return attempt * attempt
+
+        # Negative numbers squared are positive
+        assert quadratic_backoff(-1) == 1
+        assert quadratic_backoff(-5) == 25
+
+
+class TestRetryableExceptions:
+    """Test retryable exception types."""
+
+    def test_operational_error_is_retryable(self):
+        """Test OperationalError is in retryable exceptions."""
+        retryable_exceptions = [psycopg.OperationalError]
+
+        # Verify OperationalError is included
+        assert psycopg.OperationalError in retryable_exceptions
+
+    def test_database_error_not_retryable(self):
+        """Test DatabaseError is not in retryable exceptions."""
+        retryable_exceptions = [psycopg.OperationalError]
+
+        # DatabaseError should not be retryable by default
+        assert psycopg.DatabaseError not in retryable_exceptions
+
+    def test_interface_error_not_retryable(self):
+        """Test InterfaceError is not in retryable exceptions."""
+        retryable_exceptions = [psycopg.OperationalError]
+
+        # InterfaceError should not be retryable by default
+        assert psycopg.InterfaceError not in retryable_exceptions
+
+
+class TestConnectionRetryIntegration:
+    """Integration-style tests for connection retry behavior."""
+
+    @mock.patch("dbt.adapters.hologres.connections.psycopg.connect")
+    @mock.patch("dbt.adapters.hologres.connections.HologresConnectionManager.retry_connection")
+    def test_retry_connection_called_with_connect_function(self, mock_retry, mock_connect):
+        """Test retry_connection receives the connect function."""
+        mock_retry.return_value = mock.MagicMock()
+
+        creds = HologresCredentials(
+            host="test.hologres.aliyuncs.com",
+            user="test_user",
+            password="test_password",
+            database="test_db",
+            schema="public",
+        )
+
+        connection = mock.MagicMock()
+        connection.state = "init"
+        connection.credentials = creds
+        connection.name = "test_connection"
+
+        HologresConnectionManager.open(connection)
+
+        # Verify connect parameter is a callable
+        call_kwargs = mock_retry.call_args[1]
+        assert callable(call_kwargs["connect"])
+

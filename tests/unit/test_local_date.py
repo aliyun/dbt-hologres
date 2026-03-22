@@ -552,3 +552,311 @@ class TestLocalDateDayOfYear:
         ld = LocalDate("2024-06-15")
         # Jan(31) + Feb(29) + Mar(31) + Apr(30) + May(31) + 15 = 167
         assert ld.day_of_year == 167
+
+
+class TestLocalDateToSql:
+    """Test LocalDate to_sql method."""
+
+    def test_to_sql_format(self):
+        """Test to_sql returns DATE literal format."""
+        ld = LocalDate("2024-06-15")
+        assert ld.to_sql() == "DATE '2024-06-15'"
+
+    def test_to_sql_january_first(self):
+        """Test to_sql for January 1st."""
+        ld = LocalDate("2024-01-01")
+        assert ld.to_sql() == "DATE '2024-01-01'"
+
+    def test_to_sql_december_thirty_first(self):
+        """Test to_sql for December 31st."""
+        ld = LocalDate("2024-12-31")
+        assert ld.to_sql() == "DATE '2024-12-31'"
+
+    def test_to_sql_leap_day(self):
+        """Test to_sql for leap day."""
+        ld = LocalDate("2024-02-29")
+        assert ld.to_sql() == "DATE '2024-02-29'"
+
+
+class TestLocalDateToDate:
+    """Test LocalDate to_date method."""
+
+    def test_to_date_returns_python_date(self):
+        """Test to_date returns Python date object."""
+        ld = LocalDate("2024-06-15")
+        result = ld.to_date()
+        assert isinstance(result, date)
+        assert result == date(2024, 6, 15)
+
+    def test_to_date_preserves_values(self):
+        """Test to_date preserves year, month, day."""
+        ld = LocalDate("2023-12-25")
+        result = ld.to_date()
+        assert result.year == 2023
+        assert result.month == 12
+        assert result.day == 25
+
+
+class TestLocalDateToDateString:
+    """Test LocalDate to_date_string method."""
+
+    def test_to_date_string_format(self):
+        """Test to_date_string returns YYYY-MM-DD format."""
+        ld = LocalDate("2024-06-15")
+        assert ld.to_date_string() == "2024-06-15"
+
+    def test_to_date_string_same_as_str(self):
+        """Test to_date_string same as str()."""
+        ld = LocalDate("2024-06-15")
+        assert ld.to_date_string() == str(ld)
+
+
+class TestLocalDateComparisonOperators:
+    """Test LocalDate comparison operators."""
+
+    def test_le_operator_true(self):
+        """Test <= operator when less than."""
+        ld1 = LocalDate("2024-01-15")
+        ld2 = LocalDate("2024-01-20")
+        assert ld1 <= ld2
+
+    def test_le_operator_equal(self):
+        """Test <= operator when equal."""
+        ld1 = LocalDate("2024-01-15")
+        ld2 = LocalDate("2024-01-15")
+        assert ld1 <= ld2
+
+    def test_le_operator_false(self):
+        """Test <= operator when greater than."""
+        ld1 = LocalDate("2024-01-20")
+        ld2 = LocalDate("2024-01-15")
+        assert not (ld1 <= ld2)
+
+    def test_gt_operator_true(self):
+        """Test > operator when greater than."""
+        ld1 = LocalDate("2024-01-20")
+        ld2 = LocalDate("2024-01-15")
+        assert ld1 > ld2
+
+    def test_gt_operator_false(self):
+        """Test > operator when less than or equal."""
+        ld1 = LocalDate("2024-01-15")
+        ld2 = LocalDate("2024-01-20")
+        assert not (ld1 > ld2)
+
+    def test_gt_operator_equal_false(self):
+        """Test > operator when equal returns False."""
+        ld1 = LocalDate("2024-01-15")
+        ld2 = LocalDate("2024-01-15")
+        assert not (ld1 > ld2)
+
+    def test_ge_operator_true(self):
+        """Test >= operator when greater than."""
+        ld1 = LocalDate("2024-01-20")
+        ld2 = LocalDate("2024-01-15")
+        assert ld1 >= ld2
+
+    def test_ge_operator_equal(self):
+        """Test >= operator when equal."""
+        ld1 = LocalDate("2024-01-15")
+        ld2 = LocalDate("2024-01-15")
+        assert ld1 >= ld2
+
+    def test_ge_operator_false(self):
+        """Test >= operator when less than."""
+        ld1 = LocalDate("2024-01-15")
+        ld2 = LocalDate("2024-01-20")
+        assert not (ld1 >= ld2)
+
+
+class TestLocalDateHash:
+    """Test LocalDate __hash__ method."""
+
+    def test_hash_consistency(self):
+        """Test same date produces same hash."""
+        ld1 = LocalDate("2024-06-15")
+        ld2 = LocalDate("2024-06-15")
+        assert hash(ld1) == hash(ld2)
+
+    def test_hash_different_dates(self):
+        """Test different dates produce different hashes (typically)."""
+        ld1 = LocalDate("2024-06-15")
+        ld2 = LocalDate("2024-06-16")
+        # While hash collisions are possible, they should be rare
+        # We just verify they can be used in sets
+        date_set = {ld1, ld2}
+        assert len(date_set) == 2
+
+    def test_hash_set_usage(self):
+        """Test LocalDate can be used in set."""
+        ld1 = LocalDate("2024-06-15")
+        ld2 = LocalDate("2024-06-15")
+        ld3 = LocalDate("2024-06-16")
+
+        date_set = {ld1, ld2, ld3}
+        assert len(date_set) == 2
+        assert ld1 in date_set
+        assert ld3 in date_set
+
+    def test_hash_dict_usage(self):
+        """Test LocalDate can be used as dict key."""
+        ld1 = LocalDate("2024-06-15")
+        ld2 = LocalDate("2024-06-15")
+        ld3 = LocalDate("2024-06-16")
+
+        date_dict = {ld1: "first", ld2: "second", ld3: "third"}
+        assert len(date_dict) == 2
+        assert date_dict[ld1] == "second"  # ld2 overwrote ld1's value
+
+
+class TestLocalDateAddMonthsOverflow:
+    """Test add_months handling month overflow."""
+
+    def test_add_months_january_31_to_february(self):
+        """Test Jan 31 + 1 month = Feb 28/29."""
+        ld = LocalDate("2024-01-31")
+        result = ld.add_months(1)
+        # 2024 is leap year
+        assert str(result) == "2024-02-29"
+
+    def test_add_months_january_31_to_february_non_leap(self):
+        """Test Jan 31 + 1 month in non-leap year."""
+        ld = LocalDate("2023-01-31")
+        result = ld.add_months(1)
+        # 2023 is not a leap year
+        assert str(result) == "2023-02-28"
+
+    def test_add_months_march_31_to_april(self):
+        """Test Mar 31 + 1 month = Apr 30."""
+        ld = LocalDate("2024-03-31")
+        result = ld.add_months(1)
+        assert str(result) == "2024-04-30"
+
+    def test_add_months_august_31_to_september(self):
+        """Test Aug 31 + 1 month = Sep 30."""
+        ld = LocalDate("2024-08-31")
+        result = ld.add_months(1)
+        assert str(result) == "2024-09-30"
+
+    def test_add_months_october_31_to_november(self):
+        """Test Oct 31 + 1 month = Nov 30."""
+        ld = LocalDate("2024-10-31")
+        result = ld.add_months(1)
+        assert str(result) == "2024-11-30"
+
+    def test_add_months_december_31_to_january(self):
+        """Test Dec 31 + 1 month = Jan 31 next year."""
+        ld = LocalDate("2024-12-31")
+        result = ld.add_months(1)
+        assert str(result) == "2025-01-31"
+
+    def test_add_months_multiple_overflow(self):
+        """Test adding months with multiple overflows."""
+        ld = LocalDate("2024-01-31")
+        result = ld.add_months(3)
+        # Jan 31 + 3 months = Apr 30
+        assert str(result) == "2024-04-30"
+
+
+class TestLocalDateAddYearsLeapYear:
+    """Test add_years handling leap year."""
+
+    def test_add_years_feb_29_leap_to_leap(self):
+        """Test Feb 29 + 4 years = Feb 29 (leap to leap)."""
+        ld = LocalDate("2024-02-29")
+        result = ld.add_years(4)
+        assert str(result) == "2028-02-29"
+
+    def test_add_years_feb_29_leap_to_non_leap(self):
+        """Test Feb 29 + 1 year = Feb 28 (leap to non-leap)."""
+        ld = LocalDate("2024-02-29")
+        result = ld.add_years(1)
+        assert str(result) == "2025-02-28"
+
+    def test_add_years_feb_28_stays_28(self):
+        """Test Feb 28 + 1 year = Feb 28."""
+        ld = LocalDate("2023-02-28")
+        result = ld.add_years(1)
+        assert str(result) == "2024-02-28"
+
+    def test_add_years_feb_28_to_leap_year(self):
+        """Test Feb 28 + 1 year to leap year stays Feb 28."""
+        ld = LocalDate("2023-02-28")
+        result = ld.add_years(1)
+        # 2024 is leap year, but Feb 28 is still valid
+        assert str(result) == "2024-02-28"
+
+    def test_add_years_mar_1_after_feb_29(self):
+        """Test Mar 1 after Feb 29 leap year."""
+        ld = LocalDate("2024-03-01")
+        result = ld.add_years(1)
+        assert str(result) == "2025-03-01"
+
+
+class TestLocalDateEndOfQuarter:
+    """Test end_of_quarter for all quarters."""
+
+    def test_end_of_quarter_q1(self):
+        """Test end_of_quarter for Q1."""
+        ld = LocalDate("2024-02-15")
+        result = ld.end_of_quarter()
+        assert str(result) == "2024-03-31"
+
+    def test_end_of_quarter_q2(self):
+        """Test end_of_quarter for Q2."""
+        ld = LocalDate("2024-05-15")
+        result = ld.end_of_quarter()
+        assert str(result) == "2024-06-30"
+
+    def test_end_of_quarter_q3(self):
+        """Test end_of_quarter for Q3 (Sep 30)."""
+        ld = LocalDate("2024-08-15")
+        result = ld.end_of_quarter()
+        assert str(result) == "2024-09-30"
+
+    def test_end_of_quarter_q4(self):
+        """Test end_of_quarter for Q4 (Dec 31)."""
+        ld = LocalDate("2024-11-15")
+        result = ld.end_of_quarter()
+        assert str(result) == "2024-12-31"
+
+    def test_end_of_quarter_first_day_of_quarter(self):
+        """Test end_of_quarter from first day of quarter."""
+        ld = LocalDate("2024-07-01")
+        result = ld.end_of_quarter()
+        assert str(result) == "2024-09-30"
+
+    def test_end_of_quarter_last_day_of_quarter(self):
+        """Test end_of_quarter from last day of quarter."""
+        ld = LocalDate("2024-09-30")
+        result = ld.end_of_quarter()
+        assert str(result) == "2024-09-30"
+
+
+class TestLocalDateInvalidType:
+    """Test LocalDate with invalid input types."""
+
+    def test_invalid_type_integer_raises_error(self):
+        """Test integer input raises ValueError."""
+        with pytest.raises(ValueError):
+            LocalDate(20240115)
+
+    def test_invalid_type_float_raises_error(self):
+        """Test float input raises ValueError."""
+        with pytest.raises(ValueError):
+            LocalDate(2024.0115)
+
+    def test_invalid_type_list_raises_error(self):
+        """Test list input raises ValueError."""
+        with pytest.raises(ValueError):
+            LocalDate([2024, 1, 15])
+
+    def test_invalid_type_dict_raises_error(self):
+        """Test dict input raises ValueError."""
+        with pytest.raises(ValueError):
+            LocalDate({"year": 2024, "month": 1, "day": 15})
+
+    def test_invalid_type_tuple_raises_error(self):
+        """Test tuple input raises ValueError."""
+        with pytest.raises(ValueError):
+            LocalDate((2024, 1, 15))

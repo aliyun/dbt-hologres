@@ -354,3 +354,185 @@ class TestHologresColumnWithNullableInfo:
 
         assert column.column == "standalone_col"
         assert column.dtype == "varchar"
+
+
+class TestHologresColumnDataTypeVarcharEdgeCases:
+    """Edge case tests for VARCHAR type handling."""
+
+    def test_varchar_with_large_size(self):
+        """Test VARCHAR with large size value."""
+        column = HologresColumn(
+            column="large_text",
+            dtype="character varying",
+            char_size=65535,
+        )
+
+        assert "65535" in column.data_type
+
+    def test_varchar_with_size_one(self):
+        """Test VARCHAR with size 1."""
+        column = HologresColumn(
+            column="single_char",
+            dtype="character varying",
+            char_size=1,
+        )
+
+        assert "1" in column.data_type
+
+    def test_varchar_different_dtype_names(self):
+        """Test that different VARCHAR dtype names are handled."""
+        # "character varying" is the standard PostgreSQL/Hologres name
+        column = HologresColumn(
+            column="col",
+            dtype="character varying",
+        )
+
+        # Without size, should return dtype as-is
+        assert column.data_type == "character varying"
+
+    def test_varchar_with_size_preserves_dtype(self):
+        """Test VARCHAR with size includes dtype name."""
+        column = HologresColumn(
+            column="col",
+            dtype="character varying",
+            char_size=100,
+        )
+
+        # Should include both "varying" and "100"
+        assert "varying" in column.data_type.lower()
+        assert "100" in column.data_type
+
+
+class TestHologresColumnTextTypePreserved:
+    """Tests verifying TEXT type is preserved and not converted."""
+
+    def test_text_not_converted_to_varchar(self):
+        """Test TEXT is not converted to VARCHAR without size."""
+        column = HologresColumn(
+            column="text_col",
+            dtype="text",
+        )
+
+        # TEXT should stay as "text", not "character varying"
+        assert column.data_type == "text"
+        assert "varying" not in column.data_type
+
+    def test_text_with_char_size_ignored(self):
+        """Test TEXT with char_size still returns text (no size added)."""
+        column = HologresColumn(
+            column="text_col",
+            dtype="text",
+            char_size=255,  # This should be ignored for text type
+        )
+
+        # TEXT should stay as "text" even with char_size
+        assert column.data_type == "text"
+
+    def test_text_case_variations(self):
+        """Test TEXT type is recognized regardless of case."""
+        for dtype in ["TEXT", "Text", "tExT", "TeXt"]:
+            column = HologresColumn(column="col", dtype=dtype)
+            assert column.data_type.lower() == "text"
+
+
+class TestHologresColumnOtherTypes:
+    """Tests for other data types that use parent class logic."""
+
+    def test_other_types_use_parent_logic(self):
+        """Test that non-text/non-varchar types use parent class logic."""
+        # These types should go through parent class data_type property
+        column = HologresColumn(
+            column="int_col",
+            dtype="integer",
+        )
+
+        # Should return the dtype from parent
+        assert column.data_type == "integer"
+
+    def test_other_types_with_numeric_precision(self):
+        """Test numeric types with precision use parent logic."""
+        column = HologresColumn(
+            column="decimal_col",
+            dtype="numeric",
+            numeric_precision=10,
+            numeric_scale=2,
+        )
+
+        # Parent class should format this
+        assert "numeric" in column.data_type
+
+    def test_other_types_with_char_size(self):
+        """Test char type with size uses parent logic."""
+        column = HologresColumn(
+            column="char_col",
+            dtype="character",
+            char_size=10,
+        )
+
+        # Parent class should format this with size
+        assert "10" in column.data_type
+
+
+class TestHologresColumnMixedCase:
+    """Tests for case-insensitive dtype handling."""
+
+    def test_mixed_case_character_varying(self):
+        """Test mixed case 'Character Varying' is handled."""
+        column = HologresColumn(
+            column="col",
+            dtype="Character Varying",
+        )
+
+        # Should preserve the original case in output
+        assert column.data_type.lower() == "character varying"
+
+    def test_mixed_case_character_varying_with_size(self):
+        """Test mixed case 'Character Varying' with size."""
+        column = HologresColumn(
+            column="col",
+            dtype="Character Varying",
+            char_size=50,
+        )
+
+        # Should include size
+        assert "50" in column.data_type
+
+    def test_upper_case_text(self):
+        """Test upper case 'TEXT' is handled correctly."""
+        column = HologresColumn(
+            column="col",
+            dtype="TEXT",
+        )
+
+        assert column.data_type == "TEXT"
+
+
+class TestHologresColumnHologresSpecificTypes:
+    """Tests for Hologres-specific data types."""
+
+    def test_roaringbitmap_type(self):
+        """Test ROARINGBITMAP type is passed through."""
+        column = HologresColumn(
+            column="bitmap_col",
+            dtype="roaringbitmap",
+        )
+
+        assert column.data_type == "roaringbitmap"
+
+    def test_hll_type(self):
+        """Test HLL (HyperLogLog) type is passed through."""
+        column = HologresColumn(
+            column="hll_col",
+            dtype="hll",
+        )
+
+        assert column.data_type == "hll"
+
+    def test_bitor_agg_type(self):
+        """Test BITOR_AGG type is passed through."""
+        column = HologresColumn(
+            column="bitor_col",
+            dtype="bitor_agg",
+        )
+
+        assert column.data_type == "bitor_agg"

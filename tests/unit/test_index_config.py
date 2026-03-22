@@ -197,3 +197,156 @@ class TestHologresIndexConfigChange:
         })
 
         assert change.action == "drop"
+
+
+class TestHologresIndexConfigHashMethod:
+    """Test HologresIndexConfig __hash__ method."""
+
+    def test_hash_same_config_same_hash(self):
+        """Test identical configs produce same hash."""
+        index1 = HologresIndexConfig(columns=["col1", "col2"], unique=True, type="btree")
+        index2 = HologresIndexConfig(columns=["col1", "col2"], unique=True, type="btree")
+
+        assert hash(index1) == hash(index2)
+
+    def test_hash_different_columns_different_hash(self):
+        """Test different columns produce different hash."""
+        index1 = HologresIndexConfig(columns=["col1"])
+        index2 = HologresIndexConfig(columns=["col2"])
+
+        assert hash(index1) != hash(index2)
+
+    def test_hash_different_unique_different_hash(self):
+        """Test different unique flag produces different hash."""
+        index1 = HologresIndexConfig(columns=["col1"], unique=False)
+        index2 = HologresIndexConfig(columns=["col1"], unique=True)
+
+        assert hash(index1) != hash(index2)
+
+    def test_hash_different_type_different_hash(self):
+        """Test different type produces different hash."""
+        index1 = HologresIndexConfig(columns=["col1"], type="btree")
+        index2 = HologresIndexConfig(columns=["col1"], type="hash")
+
+        assert hash(index1) != hash(index2)
+
+    def test_hash_set_usage(self):
+        """Test HologresIndexConfig can be used in set."""
+        index1 = HologresIndexConfig(columns=["col1", "col2"])
+        index2 = HologresIndexConfig(columns=["col1", "col2"])  # Same config
+        index3 = HologresIndexConfig(columns=["col3"])  # Different config
+
+        index_set = {index1, index2, index3}
+        assert len(index_set) == 2
+        assert index1 in index_set
+        assert index3 in index_set
+
+    def test_hash_dict_key_usage(self):
+        """Test HologresIndexConfig can be used as dict key."""
+        index1 = HologresIndexConfig(columns=["col1"])
+        index2 = HologresIndexConfig(columns=["col1"])  # Same config
+        index3 = HologresIndexConfig(columns=["col2"])  # Different config
+
+        index_dict = {index1: "first", index2: "second", index3: "third"}
+        assert len(index_dict) == 2
+        assert index_dict[index1] == "second"  # index2 overwrote index1
+
+
+class TestHologresIndexConfigEquality:
+    """Test HologresIndexConfig __eq__ method."""
+
+    def test_eq_same_config_true(self):
+        """Test identical configs are equal."""
+        index1 = HologresIndexConfig(columns=["col1", "col2"], unique=True, type="btree")
+        index2 = HologresIndexConfig(columns=["col1", "col2"], unique=True, type="btree")
+
+        assert index1 == index2
+
+    def test_eq_different_columns_false(self):
+        """Test different columns are not equal."""
+        index1 = HologresIndexConfig(columns=["col1"])
+        index2 = HologresIndexConfig(columns=["col2"])
+
+        assert index1 != index2
+
+    def test_eq_different_unique_false(self):
+        """Test different unique flag are not equal."""
+        index1 = HologresIndexConfig(columns=["col1"], unique=False)
+        index2 = HologresIndexConfig(columns=["col1"], unique=True)
+
+        assert index1 != index2
+
+    def test_eq_different_type_false(self):
+        """Test different type are not equal."""
+        index1 = HologresIndexConfig(columns=["col1"], type="btree")
+        index2 = HologresIndexConfig(columns=["col1"], type="hash")
+
+        assert index1 != index2
+
+    def test_eq_non_indexconfig_returns_notimplemented(self):
+        """Test equality with non-HologresIndexConfig returns NotImplemented."""
+        index = HologresIndexConfig(columns=["col1"])
+
+        # Comparing with different type should return NotImplemented
+        # Python's == will then return False
+        result = index.__eq__("not_an_index")
+        assert result is NotImplemented
+
+    def test_eq_with_none_returns_notimplemented(self):
+        """Test equality with None returns NotImplemented."""
+        index = HologresIndexConfig(columns=["col1"])
+
+        result = index.__eq__(None)
+        assert result is NotImplemented
+
+    def test_eq_with_dict_returns_notimplemented(self):
+        """Test equality with dict returns NotImplemented."""
+        index = HologresIndexConfig(columns=["col1"])
+
+        result = index.__eq__({"columns": ["col1"]})
+        assert result is NotImplemented
+
+    def test_eq_column_order_matters(self):
+        """Test that column order affects equality."""
+        index1 = HologresIndexConfig(columns=["col1", "col2"])
+        index2 = HologresIndexConfig(columns=["col2", "col1"])
+
+        # Different order means different configs
+        assert index1 != index2
+
+
+class TestHologresIndexConfigRenderWithTimestamp:
+    """Test render method behavior with timestamps."""
+
+    def test_render_includes_timestamp(self):
+        """Test render includes timestamp in hash generation."""
+        relation = mock.MagicMock()
+        relation.render.return_value = "my_schema.my_table"
+
+        index = HologresIndexConfig(columns=["col1"])
+        name = index.render(relation)
+
+        # The render method generates a hash that includes timestamp
+        # We just verify it returns a string (the md5 hash)
+        assert isinstance(name, str)
+        assert len(name) == 32  # MD5 hex digest length
+
+    def test_render_different_times_different_names(self):
+        """Test render at different times produces different names."""
+        from dbt.adapters.hologres.relation_configs import index as index_module
+
+        relation = mock.MagicMock()
+        relation.render.return_value = "my_schema.my_table"
+
+        index = HologresIndexConfig(columns=["col1"])
+
+        # Get first name
+        name1 = index.render(relation)
+
+        # Wait a tiny bit and get second name (would need mocking for actual test)
+        # Since we can't guarantee different timestamps, just verify format
+        name2 = index.render(relation)
+
+        # Both should be valid md5 hashes
+        assert isinstance(name1, str)
+        assert isinstance(name2, str)

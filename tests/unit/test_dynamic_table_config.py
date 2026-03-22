@@ -202,3 +202,366 @@ class TestHologresDynamicTableConfigChangeCollection:
         )
 
         assert collection.requires_full_refresh is False
+
+
+class TestHologresDynamicTableConfigDefaultValues:
+    """Test all default values for HologresDynamicTableConfig."""
+
+    def test_all_default_values(self):
+        """Test all optional fields have correct default values."""
+        config = HologresDynamicTableConfig(freshness="30 minutes")
+
+        # Required field
+        assert config.freshness == "30 minutes"
+
+        # Default values for optional fields
+        assert config.auto_refresh_enable is True
+        assert config.auto_refresh_mode == "auto"
+        assert config.computing_resource == "serverless"
+        assert config.base_table_cdc_format == "stream"
+        assert config.partition_key is None
+        assert config.partition_type is None
+        assert config.partition_key_time_format is None
+        assert config.auto_refresh_partition_active_time is None
+        assert config.orientation == "column"
+        assert config.distribution_key is None
+        assert config.clustering_key is None
+        assert config.event_time_column is None
+        assert config.bitmap_columns is None
+        assert config.dictionary_encoding_columns is None
+        assert config.time_to_live_in_seconds is None
+        assert config.storage_mode == "hot"
+
+    def test_time_to_live_in_seconds_config(self):
+        """Test time_to_live_in_seconds configuration."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            time_to_live_in_seconds=86400,  # 1 day
+        )
+
+        assert config.time_to_live_in_seconds == 86400
+
+    def test_time_to_live_in_seconds_zero(self):
+        """Test time_to_live_in_seconds can be set to zero."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            time_to_live_in_seconds=0,
+        )
+
+        assert config.time_to_live_in_seconds == 0
+
+    def test_time_to_live_in_seconds_large_value(self):
+        """Test time_to_live_in_seconds with large value."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            time_to_live_in_seconds=31536000,  # 1 year in seconds
+        )
+
+        assert config.time_to_live_in_seconds == 31536000
+
+    def test_storage_mode_config(self):
+        """Test storage_mode configuration."""
+        # Default is hot
+        config1 = HologresDynamicTableConfig(freshness="1 hours")
+        assert config1.storage_mode == "hot"
+
+        # Can be set to cold
+        config2 = HologresDynamicTableConfig(
+            freshness="1 hours",
+            storage_mode="cold",
+        )
+        assert config2.storage_mode == "cold"
+
+    def test_from_dict_all_fields(self):
+        """Test from_dict with all fields populated."""
+        config_dict = {
+            "freshness": "2 hours",
+            "auto_refresh_enable": False,
+            "auto_refresh_mode": "incremental",
+            "computing_resource": "my_warehouse",
+            "base_table_cdc_format": "binlog",
+            "partition_key": "event_date",
+            "partition_type": "physical",
+            "partition_key_time_format": "yyyy-MM-dd",
+            "auto_refresh_partition_active_time": "00:00-06:00",
+            "orientation": "row",
+            "distribution_key": ["user_id", "order_id"],
+            "clustering_key": ["created_at"],
+            "event_time_column": ["event_time"],
+            "bitmap_columns": ["status"],
+            "dictionary_encoding_columns": ["category"],
+            "time_to_live_in_seconds": 172800,
+            "storage_mode": "cold",
+        }
+
+        config = HologresDynamicTableConfig.from_dict(config_dict)
+
+        assert config.freshness == "2 hours"
+        assert config.auto_refresh_enable is False
+        assert config.auto_refresh_mode == "incremental"
+        assert config.computing_resource == "my_warehouse"
+        assert config.base_table_cdc_format == "binlog"
+        assert config.partition_key == "event_date"
+        assert config.partition_type == "physical"
+        assert config.partition_key_time_format == "yyyy-MM-dd"
+        assert config.auto_refresh_partition_active_time == "00:00-06:00"
+        assert config.orientation == "row"
+        assert config.distribution_key == ["user_id", "order_id"]
+        assert config.clustering_key == ["created_at"]
+        assert config.event_time_column == ["event_time"]
+        assert config.bitmap_columns == ["status"]
+        assert config.dictionary_encoding_columns == ["category"]
+        assert config.time_to_live_in_seconds == 172800
+        assert config.storage_mode == "cold"
+
+    def test_from_dict_partial_fields(self):
+        """Test from_dict with partial fields uses defaults."""
+        config_dict = {
+            "freshness": "30 minutes",
+            "orientation": "row",
+            "time_to_live_in_seconds": 3600,
+        }
+
+        config = HologresDynamicTableConfig.from_dict(config_dict)
+
+        assert config.freshness == "30 minutes"
+        assert config.orientation == "row"
+        assert config.time_to_live_in_seconds == 3600
+        # Defaults should apply
+        assert config.auto_refresh_enable is True
+        assert config.auto_refresh_mode == "auto"
+        assert config.computing_resource == "serverless"
+        assert config.storage_mode == "hot"
+
+
+class TestHologresDynamicTableConfigPartitionFields:
+    """Test partition-related fields in HologresDynamicTableConfig."""
+
+    def test_partition_key_single(self):
+        """Test single partition key."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            partition_key="ds",
+        )
+
+        assert config.partition_key == "ds"
+        assert config.partition_type is None
+
+    def test_partition_type_logical(self):
+        """Test logical partition type."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            partition_key="ds",
+            partition_type="logical",
+        )
+
+        assert config.partition_type == "logical"
+
+    def test_partition_type_physical(self):
+        """Test physical partition type."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            partition_key="ds",
+            partition_type="physical",
+        )
+
+        assert config.partition_type == "physical"
+
+    def test_partition_key_time_format(self):
+        """Test partition_key_time_format."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            partition_key="ds",
+            partition_key_time_format="yyyy-MM-dd",
+        )
+
+        assert config.partition_key_time_format == "yyyy-MM-dd"
+
+    def test_auto_refresh_partition_active_time(self):
+        """Test auto_refresh_partition_active_time."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            partition_key="ds",
+            auto_refresh_partition_active_time="02:00-04:00",
+        )
+
+        assert config.auto_refresh_partition_active_time == "02:00-04:00"
+
+
+class TestHologresDynamicTableConfigTableProperties:
+    """Test table property fields in HologresDynamicTableConfig."""
+
+    def test_distribution_key_single(self):
+        """Test single distribution key."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            distribution_key=["user_id"],
+        )
+
+        assert config.distribution_key == ["user_id"]
+
+    def test_distribution_key_multiple(self):
+        """Test multiple distribution keys."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            distribution_key=["user_id", "order_id"],
+        )
+
+        assert config.distribution_key == ["user_id", "order_id"]
+
+    def test_clustering_key_single(self):
+        """Test single clustering key."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            clustering_key=["created_at"],
+        )
+
+        assert config.clustering_key == ["created_at"]
+
+    def test_clustering_key_multiple(self):
+        """Test multiple clustering keys."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            clustering_key=["created_at", "updated_at"],
+        )
+
+        assert config.clustering_key == ["created_at", "updated_at"]
+
+    def test_event_time_column_single(self):
+        """Test single event time column."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            event_time_column=["event_time"],
+        )
+
+        assert config.event_time_column == ["event_time"]
+
+    def test_bitmap_columns(self):
+        """Test bitmap columns."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            bitmap_columns=["status", "type", "category"],
+        )
+
+        assert config.bitmap_columns == ["status", "type", "category"]
+
+    def test_dictionary_encoding_columns(self):
+        """Test dictionary encoding columns."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            dictionary_encoding_columns=["country", "region"],
+        )
+
+        assert config.dictionary_encoding_columns == ["country", "region"]
+
+    def test_orientation_column(self):
+        """Test column orientation (default)."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            orientation="column",
+        )
+
+        assert config.orientation == "column"
+
+    def test_orientation_row(self):
+        """Test row orientation."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            orientation="row",
+        )
+
+        assert config.orientation == "row"
+
+
+class TestHologresDynamicTableConfigAutoRefresh:
+    """Test auto-refresh related fields in HologresDynamicTableConfig."""
+
+    def test_auto_refresh_enable_true(self):
+        """Test auto_refresh_enable True."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            auto_refresh_enable=True,
+        )
+
+        assert config.auto_refresh_enable is True
+
+    def test_auto_refresh_enable_false(self):
+        """Test auto_refresh_enable False."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            auto_refresh_enable=False,
+        )
+
+        assert config.auto_refresh_enable is False
+
+    def test_auto_refresh_mode_auto(self):
+        """Test auto_refresh_mode auto."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            auto_refresh_mode="auto",
+        )
+
+        assert config.auto_refresh_mode == "auto"
+
+    def test_auto_refresh_mode_incremental(self):
+        """Test auto_refresh_mode incremental."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            auto_refresh_mode="incremental",
+        )
+
+        assert config.auto_refresh_mode == "incremental"
+
+    def test_auto_refresh_mode_full(self):
+        """Test auto_refresh_mode full."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            auto_refresh_mode="full",
+        )
+
+        assert config.auto_refresh_mode == "full"
+
+    def test_computing_resource_serverless(self):
+        """Test computing_resource serverless (default)."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            computing_resource="serverless",
+        )
+
+        assert config.computing_resource == "serverless"
+
+    def test_computing_resource_local(self):
+        """Test computing_resource local."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            computing_resource="local",
+        )
+
+        assert config.computing_resource == "local"
+
+    def test_computing_resource_warehouse(self):
+        """Test computing_resource with warehouse name."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            computing_resource="my_warehouse",
+        )
+
+        assert config.computing_resource == "my_warehouse"
+
+    def test_base_table_cdc_format_stream(self):
+        """Test base_table_cdc_format stream (default)."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            base_table_cdc_format="stream",
+        )
+
+        assert config.base_table_cdc_format == "stream"
+
+    def test_base_table_cdc_format_binlog(self):
+        """Test base_table_cdc_format binlog."""
+        config = HologresDynamicTableConfig(
+            freshness="1 hours",
+            base_table_cdc_format="binlog",
+        )
+
+        assert config.base_table_cdc_format == "binlog"
