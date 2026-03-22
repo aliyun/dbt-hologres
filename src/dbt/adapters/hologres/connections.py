@@ -159,7 +159,7 @@ class HologresConnectionManager(SQLConnectionManager):
             psycopg.OperationalError,
         ]
 
-        def exponential_backoff(attempt: int):
+        def quadratic_backoff(attempt: int):
             return attempt * attempt
 
         return cls.retry_connection(
@@ -167,7 +167,7 @@ class HologresConnectionManager(SQLConnectionManager):
             connect=connect,
             logger=logger,
             retry_limit=credentials.retries,
-            retry_timeout=exponential_backoff,
+            retry_timeout=quadratic_backoff,
             retryable_exceptions=retryable_exceptions,
         )
 

@@ -17,24 +17,19 @@ from dbt.adapters.hologres.relation_configs import (
     HologresDynamicTableConfigChangeCollection,
 )
 
+# Shared constant for relation types that can be renamed or replaced
+_MODIFIABLE_RELATION_TYPES: FrozenSet[RelationType] = frozenset(
+    {RelationType.View, RelationType.Table}  # type: ignore
+)
+
 
 @dataclass(frozen=True, eq=False, repr=False)
 class HologresRelation(BaseRelation):
     renameable_relations: FrozenSet[RelationType] = field(
-        default_factory=lambda: frozenset(
-            {
-                RelationType.View,  # type:ignore
-                RelationType.Table,  # type:ignore
-            }
-        )
+        default_factory=lambda: _MODIFIABLE_RELATION_TYPES
     )
     replaceable_relations: FrozenSet[RelationType] = field(
-        default_factory=lambda: frozenset(
-            {
-                RelationType.View,  # type:ignore
-                RelationType.Table,  # type:ignore
-            }
-        )
+        default_factory=lambda: _MODIFIABLE_RELATION_TYPES
     )
 
     def __post_init__(self):

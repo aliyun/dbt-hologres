@@ -14,6 +14,16 @@ from typing import Union
 import calendar
 
 
+class _CallableInt(int):
+    """An int subclass that is also callable, used for DualAccessor."""
+
+    def __new__(cls, val: int):
+        return int.__new__(cls, val)
+
+    def __call__(self) -> int:
+        return int(self)
+
+
 class DualAccessor:
     """
     Descriptor that allows a property to be accessed both as an attribute and as a method.
@@ -31,30 +41,11 @@ class DualAccessor:
         if obj is None:
             return self
 
-        # Get the value
         value = self.getter(obj)
-
-        # Create a callable that returns the value
-        def callable_method():
-            return value
-
-        # Copy docstring and make it look like a method
-        callable_method.__doc__ = self.__doc__
-        callable_method.__name__ = self.__name__
-
-        # Return the callable (which when called returns value, but itself represents the value)
-        # For int values, we need to make the callable behave like an int
-        class CallableValue(int):
-            """An int subclass that is also callable."""
-            def __new__(cls, val, original_callable):
-                obj = int.__new__(cls, val)
-                obj._original_callable = original_callable
-                return obj
-
-            def __call__(self):
-                return int(self)
-
-        return CallableValue(value, callable_method)
+        result = _CallableInt(value)
+        result.__doc__ = self.__doc__
+        result.__name__ = self.__name__
+        return result
 
 
 class LocalDate:
@@ -145,18 +136,15 @@ class LocalDate:
         Returns:
             New LocalDate instance
         """
-        year = self._date.year
-        month = self._date.month - months
-        day = self._date.day
-
-        # Handle year rollover
-        while month <= 0:
-            month += 12
-            year -= 1
+        # O(1) month adjustment using divmod
+        total_months = self._date.month - months
+        year_offset, month = divmod(total_months - 1, 12)
+        year = self._date.year + year_offset
+        month += 1
 
         # Handle day overflow (e.g., Jan 31 - 1 month = Dec 31, not Dec 28)
         max_day = calendar.monthrange(year, month)[1]
-        day = min(day, max_day)
+        day = min(self._date.day, max_day)
 
         return LocalDate(date(year, month, day))
     
@@ -205,18 +193,14 @@ class LocalDate:
         Returns:
             New LocalDate instance
         """
-        year = self._date.year
-        month = self._date.month + months
-        day = self._date.day
-
-        # Handle year rollover
-        while month > 12:
-            month -= 12
-            year += 1
+        # O(1) month adjustment
+        total_months = self._date.month + months
+        year = self._date.year + (total_months - 1) // 12
+        month = ((total_months - 1) % 12) + 1
 
         # Handle day overflow
         max_day = calendar.monthrange(year, month)[1]
-        day = min(day, max_day)
+        day = min(self._date.day, max_day)
 
         return LocalDate(date(year, month, day))
     

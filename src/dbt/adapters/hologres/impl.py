@@ -19,7 +19,6 @@ from dbt.adapters.sql import SQLAdapter
 from dbt_common.contracts.constraints import ConstraintType
 from dbt_common.dataclass_schema import ValidationError, dbtClassMixin
 from dbt_common.exceptions import DbtRuntimeError
-from dbt_common.utils import encoding as dbt_encoding
 
 from dbt.adapters.hologres.column import HologresColumn
 from dbt.adapters.hologres.connections import HologresConnectionManager
