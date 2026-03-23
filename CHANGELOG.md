@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3]
+
+### Improvements
+
+- **Connection Optimization**:
+  - Changed the connection retry strategy from exponential backoff to quadratic backoff to reduce retry duration
+
+- **LocalDate Enhancements**:
+  - Optimized month addition/subtraction methods to achieve O(1) time complexity
+  - Improved date overflow handling for edge cases
+  - Simplified `DualAccessor` by encapsulating the return value as a callable integer subclass
+
+- **Code Refactoring**:
+  - Extracted renamable and replaceable relation type constants to unify default collections within `HologresRelation`
+  - Removed unused encoding imports in the `impl` module to clean up code dependencies
+
+### Test Coverage
+
+- Added microbatch incremental model functional tests
+- Enhanced error handling test coverage
+- Added boundary and edge case unit tests for exception handling
+- Added HologresColumn data type boundary and variant tests
+
 ## [1.1.2]
 
 ### Improvements

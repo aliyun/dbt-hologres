@@ -331,18 +331,21 @@ This project includes comprehensive unit tests with mocked database connections.
 | Test File | Test Classes | Test Methods | Coverage Area |
 |-----------|--------------|--------------|---------------|
 | test_adapter.py | 5 | 29 | Adapter core functionality and configuration |
-| test_connection.py | 5 | 28 | Connection management and credentials |
-| test_relation.py | 3 | 18 | Relation objects and index management |
-| test_column.py | 1 | 8 | Column handling and data types |
-| test_local_date.py | 12 | 64 | LocalDate date utilities |
-| test_index_config.py | 2 | 18 | Index configuration |
-| test_dynamic_table_config.py | 2 | 16 | Dynamic table configuration |
-| test_sql_macros.py | 6 | 27 | SQL macro rendering |
+| test_adapter_cache.py | 4 | 18 | Adapter caching mechanisms |
+| test_adapter_capabilities.py | 5 | 21 | Adapter capability checks |
+| test_connection.py | 15 | 70 | Connection management and credentials |
+| test_relation.py | 5 | 33 | Relation objects and index management |
+| test_column.py | 9 | 52 | Column handling and data types |
+| test_local_date.py | 22 | 123 | LocalDate date utilities |
+| test_local_date_internals.py | 11 | 19 | LocalDate internal implementation |
+| test_index_config.py | 5 | 34 | Index configuration |
+| test_dynamic_table_config.py | 6 | 49 | Dynamic table configuration |
+| test_sql_macros.py | 6 | 26 | SQL macro rendering |
 | test_logical_partition.py | 5 | 22 | Logical partition tables |
-| test_date_utils_macros.py | 9 | 33 | Date utility macros |
-| test_exception_handling.py | 7 | 23 | Exception handling |
-| test_edge_cases.py | 7 | 64 | Edge cases and boundary conditions |
-| **Total** | **61** | **~350** | |
+| test_date_utils_macros.py | 9 | 34 | Date utility macros |
+| test_exception_handling.py | 7 | 22 | Exception handling |
+| test_edge_cases.py | 7 | 62 | Edge cases and boundary conditions |
+| **Total** | **116** | **614** | |
 
 ### Test Class Descriptions
 
@@ -352,6 +355,19 @@ This project includes comprehensive unit tests with mocked database connections.
 - `TestHologresAdapterParseDate`: Date parsing functionality
 - `TestHologresAdapterToday`: Current date retrieval
 - `TestHologresAdapterTimestampAdd`: Timestamp interval SQL generation
+
+#### test_adapter_cache.py
+- `TestAdapterCacheInvalidation`: Cache invalidation behavior
+- `TestAdapterCacheConsistency`: Cache consistency checks
+- `TestAdapterCachePerformance`: Cache performance characteristics
+- `TestAdapterCacheEdgeCases`: Cache edge case handling
+
+#### test_adapter_capabilities.py
+- `TestAdapterCapabilities`: Adapter capability declarations
+- `TestAdapterBehavior`: Adapter behavior flags
+- `TestAdapterConstraints`: Constraint support capabilities
+- `TestAdapterMaterializations`: Supported materializations
+- `TestAdapterFeatureFlags`: Feature flag handling
 
 #### test_connection.py
 - `TestHologresCredentials`: Credential validation and defaults
@@ -378,6 +394,12 @@ This project includes comprehensive unit tests with mocked database connections.
 - `TestTodayFunction`: today() helper function
 - `TestLocalDateWeekMethods`: Week boundary methods
 - `TestLocalDateDayOfYear`: Day of year property
+
+#### test_local_date_internals.py
+- `TestDualAccessor`: Dual accessor implementation
+- `TestMonthArithmetic`: Month calculation optimization
+- `TestDateOverflow`: Date overflow handling
+- `TestCallableInteger`: Callable integer subclass behavior
 
 #### test_sql_macros.py
 - `TestAdaptersMacros`: CTAS and DDL statement rendering
