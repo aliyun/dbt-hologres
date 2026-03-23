@@ -194,7 +194,7 @@ models:
         data_type: integer
         constraints:
           - type: foreign_key
-            to: parent_table
+            to: ref('parent_table')
             to_columns: [id]
       - name: name
         data_type: text
